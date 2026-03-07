@@ -14,7 +14,7 @@ import {
   type Message,
 } from "discord.js";
 import { stepCountIs, type UserContent } from "ai";
-import { config, MODEL, VISION_MODEL } from "./config.js";
+import { config, MODEL, VISION_MODEL, ALT_MODEL, FALLBACK_MODEL } from "./config.js";
 import {
   addMessage,
   getHistory,
@@ -49,8 +49,6 @@ import {
   isSendableChannel,
   chunkText,
   stripImageParts,
-  ALT_MODEL,
-  FALLBACK_MODEL,
 } from "./helpers.js";
 import { processAttachments } from "./attachments.js";
 import { maybeCompress } from "./compressor.js";

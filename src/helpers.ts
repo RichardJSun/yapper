@@ -1,5 +1,4 @@
-import { generateText, embed, tool, type ModelMessage, type ToolSet, type JSONValue } from "ai";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { generateText, embed, tool, createGateway, type ModelMessage, type ToolSet, type JSONValue } from "ai";
 import { z } from "zod";
 import type { Message, TextChannel, DMChannel } from "discord.js";
 import { config, ALT_MODEL, FALLBACK_MODEL, EMBED_MODEL } from "./config.js";
@@ -14,14 +13,9 @@ import { eventBus } from "./eventBus.js";
 
 // ── AI Gateway ─────────────────────────────────────────────
 
-const aiGateway = createOpenAICompatible({
-  name: "vercel-ai-gateway",
-  baseURL: "https://ai-gateway.vercel.sh/v1",
+const aiGateway = createGateway({
   apiKey: config.VERCEL_AI_GATEWAY_KEY,
 });
-
-// Re-export model constants from config for backward compatibility
-export { ALT_MODEL, FALLBACK_MODEL, EMBED_MODEL };
 
 // ── Model resolution ───────────────────────────────────────
 

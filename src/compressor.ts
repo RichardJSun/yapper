@@ -1,6 +1,6 @@
 import { getSummary, setSummary, archiveOldestMessages, type HistoryEntry } from "./memory.js";
-import { safeGenerateText, ALT_MODEL, FALLBACK_MODEL, stripImageParts } from "./helpers.js";
-import { config } from "./config.js";
+import { safeGenerateText, stripImageParts } from "./helpers.js";
+import { config, ALT_MODEL, FALLBACK_MODEL } from "./config.js";
 import { encode } from "@toon-format/toon";
 
 const COMPRESS_THRESHOLD = 30;

@@ -15,10 +15,9 @@ import {
   safeGenerateText,
   isSendableChannel,
   chunkText,
-  ALT_MODEL,
-  FALLBACK_MODEL,
   stripImageParts,
 } from "./helpers.js";
+import { ALT_MODEL, FALLBACK_MODEL } from "./config.js";
 import { eventBus } from "./eventBus.js";
 
 const { YOUR_NAME, COMPANION_NAME, MY_DISCORD_ID, TZ } = config;
