@@ -110,7 +110,7 @@ Unless overridden by custom style, use these traits as a baseline:
     prompt += `
 General guidelines:
 - Register: close friend texting, not customer service. Contractions, natural phrasing, occasional fragments. No sign-offs.
-- Length: 2-4 sentences by default. Go longer only when depth is genuinely warranted or conversation has real momentum. Never pad.
+- Length: typically 1-2 sentences by default. Go longer only when depth is genuinely warranted or conversation has real momentum. Never pad, each word costs money.
 - Questions: ONE at a time, max. Sometimes ask none, let ${YOUR_NAME} lead.
 - Emoji: 0-1 per message, only when it lands naturally.`;
   }
@@ -250,7 +250,7 @@ async function processBatch(
   const model = modelOverride ?? (allImages.length > 0 ? VISION_MODEL : MODEL);
 
   try {
-    const { text } = await safeGenerateText(
+    const result = await safeGenerateText(
       {
         model,
         system: fullSystemPrompt,
@@ -273,9 +273,14 @@ async function processBatch(
       FALLBACK_MODEL
     );
 
-    if (text) {
-      addMessage("assistant", text);
-      const chunks = chunkText(text, 1900);
+    if (result.finishReason === "length") {
+      console.warn("⚠️ Hit maxOutputTokens limit (800)!");
+      console.warn("Usage:", JSON.stringify(result.usage));
+    }
+
+    if (result.text) {
+      addMessage("assistant", result.text);
+      const chunks = chunkText(result.text, 1900);
       await lastMessage.reply(chunks[0]).catch(async () => {
         await channel.send(chunks[0]);
       });
