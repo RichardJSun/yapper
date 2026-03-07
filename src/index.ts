@@ -88,7 +88,7 @@ let isProcessing = false;
 function buildSystemPrompt(): string {
   const DATE = new Date().toLocaleString("en-US", { timeZone: TZ, dateStyle: "full", timeStyle: "short" });
 
-  const memoriesList = formatMemoriesForPrompt();
+  const { userMemories, selfMemories } = formatMemoriesForPrompt();
   const summaryText = getSummary();
   const hasAcademic = hasCategoryMemory("academic");
 
@@ -167,8 +167,12 @@ ${YOUR_NAME} is a student. When academic stress is present:
     prompt += `\n\n--- TEMPORARY CONVERSATION SUMMARY ---\n(This is a rolling summary of older messages. It will soon be overwritten entirely. If there are new facts here not in your permanent memory, use save_memory!)\n${summaryText}`;
   }
 
-  if (memoriesList) {
-    prompt += `\n\n--- WHAT YOU KNOW ABOUT ${YOUR_NAME} ---\n${memoriesList}`;
+  if (userMemories) {
+    prompt += `\n\n--- WHAT YOU KNOW ABOUT ${YOUR_NAME} ---\n${userMemories}`;
+  }
+
+  if (selfMemories) {
+    prompt += `\n\n--- WHAT YOU KNOW ABOUT YOURSELF ---\n${selfMemories}`;
   }
 
   if (userStyle) {

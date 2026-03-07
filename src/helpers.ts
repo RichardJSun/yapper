@@ -135,13 +135,14 @@ CATEGORIES:
 - career: jobs, internships, interviews, professional goals
 - project: side projects, coding, creative work
 - health: physical/mental health, diet, exercise habits
-- misc: any other important facts that don't fit above categories`,
+- misc: any other important facts that don't fit above categories
+- self: facts about yourself, your evolving personality, or your own preferences`,
   inputSchema: z.object({
     ops: z.array(
       z.discriminatedUnion("op", [
         z.object({
           op: z.literal("upsert"),
-          category: z.enum(["profile", "preference", "event", "academic", "people", "career", "project", "health", "misc"]),
+          category: z.enum(["profile", "preference", "event", "academic", "people", "career", "project", "health", "misc", "self"]),
           key: z.string(),
           value: z.string(),
           durable: z.boolean().default(false),
@@ -152,7 +153,7 @@ CATEGORIES:
         }),
         z.object({
           op: z.literal("delete"),
-          category: z.enum(["profile", "preference", "event", "academic", "people", "career", "project", "health", "misc"]),
+          category: z.enum(["profile", "preference", "event", "academic", "people", "career", "project", "health", "misc", "self"]),
           key: z.string(),
         }),
       ])

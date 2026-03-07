@@ -275,7 +275,7 @@ export function searchMemoriesSemantic(embeddingArray: number[]): VecSearchRow[]
   `).all(new Float32Array(embeddingArray));
 }
 
-export function formatMemoriesForPrompt(): string | null {
+export function formatMemoriesForPrompt(): { userMemories: string | null; selfMemories: string | null } {
   const nowMs = Date.now();
   const nowSec = Math.floor(nowMs / 1000);
   const cutoff14d = nowSec - 14 * 86400;
@@ -291,16 +291,18 @@ export function formatMemoriesForPrompt(): string | null {
        OR category = 'career'
        OR category = 'project'
        OR category = 'health'
+       OR (category = 'self'     AND source = 'auto' AND updated_at > ?3)
        OR (category = 'misc'     AND source = 'auto' AND updated_at > ?3)
        OR (category = 'academic' AND source = 'auto' AND updated_at > ?2)
        OR (category = 'event'    AND source = 'auto' AND updated_at > ?3)
     ORDER BY category, key
   `).all(nowMs, cutoff14d, cutoff30d);
 
-  if (filtered.length === 0) return null;
+  if (filtered.length === 0) return { userMemories: null, selfMemories: null };
 
   // Group by category
-  const groups = new Map<string, string[]>();
+  const userGroups = new Map<string, string[]>();
+  const selfLines: string[] = [];
   for (const m of filtered) {
     const suffixes: string[] = [];
     if (m.source === "explicit") suffixes.push("durable");
@@ -309,13 +311,24 @@ export function formatMemoriesForPrompt(): string | null {
     const line = `  - ${m.key}: ${m.value}${suffix}`;
 
     const cat = m.category.toUpperCase();
-    if (!groups.has(cat)) groups.set(cat, []);
-    groups.get(cat)!.push(line);
+    if (m.category === "self") {
+      selfLines.push(line);
+    } else {
+      if (!userGroups.has(cat)) userGroups.set(cat, []);
+      userGroups.get(cat)!.push(line);
+    }
   }
 
-  return Array.from(groups.entries())
+  const userMemories = Array.from(userGroups.entries())
     .map(([cat, lines]) => `[${cat}]\n${lines.join("\n")}`)
     .join("\n");
+
+  const selfMemories = selfLines.join("\n");
+
+  return {
+    userMemories: userMemories.length > 0 ? userMemories : null,
+    selfMemories: selfMemories.length > 0 ? selfMemories : null,
+  };
 }
 
 // ── Meta ───────────────────────────────────────────────────
