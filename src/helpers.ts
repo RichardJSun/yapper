@@ -133,19 +133,21 @@ DUPLICATION: If user updates an ongoing class/event not in context, call query_m
 DURABLE: true for significant life facts (family, health, housing). false for transient/academic items.
 TARGET_DATE: Unix MS timestamp for future exams/events. Empty for past/present facts.
 CATEGORIES:
-- profile: name, age, location, health
+- profile: name, age, location
 - preference: hobbies, food, routines
 - event: social/life events
 - academic: exams, deadlines, grades
 - people: friends, family, relationships, people they mention
 - career: jobs, internships, interviews, professional goals
-- project: side projects, coding, creative work`,
+- project: side projects, coding, creative work
+- health: physical/mental health, diet, exercise habits
+- misc: any other important facts that don't fit above categories`,
   inputSchema: z.object({
     ops: z.array(
       z.discriminatedUnion("op", [
         z.object({
           op: z.literal("upsert"),
-          category: z.enum(["profile", "preference", "event", "academic", "people", "career", "project"]),
+          category: z.enum(["profile", "preference", "event", "academic", "people", "career", "project", "health", "misc"]),
           key: z.string(),
           value: z.string(),
           durable: z.boolean().default(false),
@@ -156,7 +158,7 @@ CATEGORIES:
         }),
         z.object({
           op: z.literal("delete"),
-          category: z.enum(["profile", "preference", "event", "academic", "people", "career", "project"]),
+          category: z.enum(["profile", "preference", "event", "academic", "people", "career", "project", "health", "misc"]),
           key: z.string(),
         }),
       ])

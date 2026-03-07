@@ -291,6 +291,8 @@ export function formatMemoriesForPrompt(): string | null {
        OR category = 'people'
        OR category = 'career'
        OR category = 'project'
+       OR category = 'health'
+       OR (category = 'misc'     AND source = 'auto' AND updated_at > ?3)
        OR (category = 'academic' AND source = 'auto' AND updated_at > ?2)
        OR (category = 'event'    AND source = 'auto' AND updated_at > ?3)
     ORDER BY category, key
