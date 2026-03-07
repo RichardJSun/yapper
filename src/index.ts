@@ -23,6 +23,7 @@ import {
   resetAll,
   closeDb,
   getAllMemories,
+  hasCategoryMemory,
   formatMemoriesForPrompt,
   upsertMemory,
   getMeta,
@@ -87,12 +88,11 @@ let isProcessing = false;
 
 function buildSystemPrompt(): string {
   const DATE = new Date().toLocaleString("en-US", { timeZone: TZ, dateStyle: "full", timeStyle: "short" });
-  
+
   const memoriesList = formatMemoriesForPrompt();
   const summaryText = getSummary();
-  const allMemories = getAllMemories();
-  const hasAcademic = allMemories.some((m) => m.category === "academic");
-  
+  const hasAcademic = hasCategoryMemory("academic");
+
   // Custom user style is injected as a baseline, but the core energy matching rules remain
   const userStyle = getMeta("user_style") || "";
 
