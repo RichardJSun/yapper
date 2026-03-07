@@ -369,6 +369,9 @@ const commands = [
             .setDescription("How you want the bot to act (or 'clear' to reset). Leave blank to view.")
             .setRequired(false)
         )
+    )
+    .addSubcommand((sub) =>
+      sub.setName("debug").setDescription("View the dynamically generated system prompt for the current session")
     ),
 
   new SlashCommandBuilder()
@@ -422,6 +425,16 @@ async function handleSlashCommand(interaction: ChatInputCommandInteraction): Pro
     if (sub === "resetall") {
       resetAll();
       await interaction.reply({ content: "✓ Full reset. All data wiped.", flags: MessageFlags.Ephemeral });
+      return;
+    }
+
+    if (sub === "debug") {
+      const promptText = buildSystemPrompt();
+      const chunks = chunkText(promptText, 1900);
+      await interaction.reply({ content: chunks[0], flags: MessageFlags.Ephemeral });
+      for (const chunk of chunks.slice(1)) {
+        await interaction.followUp({ content: chunk, flags: MessageFlags.Ephemeral });
+      }
       return;
     }
 
