@@ -7,6 +7,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/deepseek": "^2.0.24",
+    "@ai-sdk/moonshotai": "^2.0.10",
+    "@ai-sdk/openai": "^3.0.41",
     "@toon-format/toon": "^2.1.0",
     "ai": "6.0.116",
     "cronbake": "0.4.0",

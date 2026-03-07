@@ -1,6 +1,7 @@
 import { getSummary, setSummary, archiveOldestMessages, type HistoryEntry } from "./memory.js";
 import { safeGenerateText, stripImageParts } from "./helpers.js";
 import { config, ALT_MODEL, FALLBACK_MODEL } from "./config.js";
+import type { OpenAIChatLanguageModelOptions } from "@ai-sdk/openai";
 import { encode } from "@toon-format/toon";
 
 const COMPRESS_THRESHOLD = 30;
@@ -59,6 +60,10 @@ export async function maybeCompress(history: HistoryEntry[]): Promise<HistoryEnt
         model: ALT_MODEL,
         messages: [{ role: "user", content }],
         maxOutputTokens: 400,
+        providerOptions: {
+          gateway: { caching: 'auto' },
+          openai: { reasoningEffort: 'low' } satisfies OpenAIChatLanguageModelOptions,
+        },
       },
       FALLBACK_MODEL
     );

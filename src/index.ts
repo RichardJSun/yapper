@@ -14,6 +14,7 @@ import {
   type Message,
 } from "discord.js";
 import { stepCountIs, type UserContent } from "ai";
+import type { OpenAIChatLanguageModelOptions } from "@ai-sdk/openai";
 import { config, MODEL, VISION_MODEL, ALT_MODEL, FALLBACK_MODEL } from "./config.js";
 import {
   addMessage,
@@ -253,7 +254,7 @@ async function processBatch(
         maxOutputTokens: 800,
         providerOptions: {
           gateway: { caching: 'auto' },
-          openai: { reasoningEffort: 'low' },
+          openai: { reasoningEffort: 'low' } satisfies OpenAIChatLanguageModelOptions,
         },
         tools: {
           web_search: webSearchTool,

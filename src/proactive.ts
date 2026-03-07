@@ -1,4 +1,5 @@
 import Baker, { FilePersistenceProvider, type CronExpression } from "cronbake";
+import type { OpenAIChatLanguageModelOptions } from "@ai-sdk/openai";
 import type { Client } from "discord.js";
 import { config } from "./config.js";
 import {
@@ -218,7 +219,7 @@ Send a warm, brief good morning. Reference something personal if you know it, li
         maxOutputTokens: 120,
         providerOptions: {
           gateway: { caching: 'auto' },
-          openai: { reasoningEffort: 'low' },
+          openai: { reasoningEffort: 'low' } satisfies OpenAIChatLanguageModelOptions,
         },
       },
       FALLBACK_MODEL
@@ -261,7 +262,7 @@ Check in casually. If they had something today (class, exam, event), ask about i
         maxOutputTokens: 120,
         providerOptions: {
           gateway: { caching: 'auto' },
-          openai: { reasoningEffort: 'low' },
+          openai: { reasoningEffort: 'low' } satisfies OpenAIChatLanguageModelOptions,
         },
       },
       FALLBACK_MODEL
@@ -349,7 +350,7 @@ Reply: YES: <message> or NO`,
             maxOutputTokens: 150,
             providerOptions: {
               gateway: { caching: 'auto' },
-              openai: { reasoningEffort: 'low' },
+              openai: { reasoningEffort: 'low' } satisfies OpenAIChatLanguageModelOptions,
             },
           },
           FALLBACK_MODEL
