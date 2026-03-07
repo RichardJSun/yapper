@@ -224,7 +224,10 @@ async function processBatch(
   let history = getHistory();
   history = await maybeCompress(history);
 
-  const apiHistory = history.map(({ role, content }) => {
+  const apiHistory = history.map((msg, idx) => {
+    // Keep image for the most recent message (current batch), strip for older ones to save tokens
+    const processedMsg = idx === history.length - 1 ? msg : stripImageParts(msg);
+    const { role, content } = processedMsg;
     if (role === "user") {
       return {
         role: "user",
