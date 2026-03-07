@@ -106,9 +106,7 @@ export async function safeGenerateText(
 const { YOUR_NAME, COMPANION_NAME } = config;
 
 export const webSearchTool = tool({
-  description: `Search the web for current events, breaking news, scores, prices, software releases, or any information that may have changed recently. Use whenever the user asks about something time-sensitive or that happened after your training cutoff.
-CRITICAL: Never use this tool to search for personal information, past conversations, or facts about the user. For personal memory recall, use query_memory instead. This tool is ONLY for public, real-world data.
-Do NOT narrate that you are searching. Weave results naturally into your reply. Do NOT search for general knowledge you already have confidently.`,
+  description: `Search the web for current events, breaking news, scores, prices, software releases. Only for public, real-world data. Never use for personal facts about the user.`,
   inputSchema: z.object({
     query: z.string().describe(
       'Concise, specific search query. E.g. "NFL scores March 2026"'
@@ -130,18 +128,15 @@ Do NOT narrate that you are searching. Weave results naturally into your reply. 
 });
 
 export const saveMemoryTool = tool({
-  description: `Persist facts about ${YOUR_NAME} to long-term memory. Err heavily on the side of saving. If you learn something new about them, save it.
-Delete a memory when the user corrects a stored fact.
-DUPLICATION GUARDRAIL: If the user provides an update to an ongoing class, project, conflict, or event that is NOT currently visible in your context, call query_memory first to find the exact key string used previously.
-The durable flag controls prompt injection lifespan:
-Set durable:true for significant life facts relevant indefinitely (family, health, relationships, loss, identity, housing, long-term goals), anything the user explicitly says is important to remember, and corrections to previously stored facts.
-Leave durable:false for situational stress, time-limited context, transient conflicts, and academic items.
-The target_date_ms field keeps upcoming events in context until they occur. Set it to the estimated Unix timestamp in milliseconds for any future exam, deadline, trip, or event. Leave empty for past or present facts.
-Category rules:
-- profile: name, age, location, major, year, housing, family, health
-- preference: hobbies, communication style, food, sleep, routines
-- event: social/emotional/life events worth following up on
-- academic: exams, deadlines, grades, registration, internships (key format: <type>_<subject>)`,
+  description: `Persist facts about ${YOUR_NAME} to memory. Err heavily on saving. Delete when user corrects a fact.
+DUPLICATION: If user updates an ongoing class/event not in context, call query_memory first to find exact key.
+DURABLE: true for significant life facts (family, health, housing). false for transient/academic items.
+TARGET_DATE: Unix MS timestamp for future exams/events. Empty for past/present facts.
+CATEGORIES:
+- profile: name, age, location, health
+- preference: hobbies, food, routines
+- event: social/life events
+- academic: exams, deadlines, grades`,
   inputSchema: z.object({
     ops: z.array(
       z.discriminatedUnion("op", [
@@ -199,9 +194,7 @@ Category rules:
 });
 
 export const queryMemoryTool = tool({
-  description: `Search your long-term archival memory for stored personal facts about ${YOUR_NAME}. Your default context only shows recent events (last 14-30 days) and core durable facts.
-Call this when the user references a past event, inside joke, place, person, or academic result not in your immediate context, or when they say 'do you remember...'.
-CRITICAL: Never use this for public facts, news, or real-world trivia. Only for stored personal facts. Do NOT narrate the search. If nothing found, say casually you don't recall those details.`,
+  description: `Search long-term memory for stored personal facts about ${YOUR_NAME} not in immediate context (e.g. past events, inside jokes). Never use for public facts/trivia. If nothing found, casually say you don't recall.`,
   inputSchema: z.object({
     query: z.string().describe(
       'Search query for personal memories. E.g. "exam", "roommate", "Toronto"'
@@ -238,10 +231,8 @@ CRITICAL: Never use this for public facts, news, or real-world trivia. Only for 
 });
 
 export const scheduleMessageTool = tool({
-  description: `Schedule a message to send to ${YOUR_NAME} at a specific future time. Use this when you want to reach out at a meaningful moment: the night before an exam, a day after a hard conversation, when a trip or event is starting, after an emotional talk, or when they mentioned something coming up.
-Think of it as setting yourself a reminder to check in. Use it generously after meaningful conversations.
-event_key should match the relevant memory key if one exists (e.g. "exam_cs301") to prevent duplicate scheduling. Omit for one-off messages with no related memory entry.
-All scheduling is silent. Never tell ${YOUR_NAME} you're setting a reminder or that a message will arrive later.`,
+  description: `Schedule a message to send to ${YOUR_NAME} at a specific future time (e.g. night before exam, after emotional talk). Use generously after meaningful conversations.
+Set event_key to match a memory key if one exists to prevent duplicate scheduling.`,
   inputSchema: z.object({
     message: z.string().describe("The exact message to send. Write it naturally, in your voice."),
     fire_at_ms: z.number().describe("Unix timestamp in milliseconds for when to send."),
@@ -265,7 +256,7 @@ All scheduling is silent. Never tell ${YOUR_NAME} you're setting a reminder or t
 });
 
 export const updateStylePreferenceTool = tool({
-  description: `Update the user's explicit communication style preferences. Use this ONLY when the user tells you how they want you to act, talk, or the vibe they expect from you going forward (e.g. "be more sarcastic", "talk less", "don't ask so many questions"). This injects their instructions directly into your core system prompt.`,
+  description: `Update the user's explicit communication style preferences. Use ONLY when the user tells you how they want you to act/talk. Injects instructions directly into your core prompt.`,
   inputSchema: z.object({
     instructions: z.string().describe("The style instructions to follow going forward. Be concise but clear."),
   }),
@@ -291,8 +282,7 @@ export function setBatchMessageRefs(refs: Message[]): void {
 }
 
 export const reactTool = tool({
-  description: `React to a message with an emoji. Use this to express quick emotions without a full text reply. For example: a laugh, acknowledgment, love, surprise, etc. Use naturally and sparingly, like a real friend would react on Discord.
-message_index 0 = the first/oldest message in the current batch, 1 = the second, etc. If unsure, use 0. You can call this multiple times with different emoji or message indices.`,
+  description: `React to a message with an emoji naturally and sparingly. message_index 0 = first/oldest message in current batch. Use 0 if unsure.`,
   inputSchema: z.object({
     emoji: z.string().describe('A single emoji to react with. E.g. "😂", "❤️", "👀"'),
     message_index: z.number().default(0).describe("Index of the message in the batch to react to (0 = first)."),
