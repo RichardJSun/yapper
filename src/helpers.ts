@@ -137,13 +137,15 @@ CATEGORIES:
 - preference: hobbies, food, routines
 - event: social/life events
 - academic: exams, deadlines, grades
-- people: friends, family, relationships, people they mention`,
+- people: friends, family, relationships, people they mention
+- career: jobs, internships, interviews, professional goals
+- project: side projects, coding, creative work`,
   inputSchema: z.object({
     ops: z.array(
       z.discriminatedUnion("op", [
         z.object({
           op: z.literal("upsert"),
-          category: z.enum(["profile", "preference", "event", "academic", "people"]),
+          category: z.enum(["profile", "preference", "event", "academic", "people", "career", "project"]),
           key: z.string(),
           value: z.string(),
           durable: z.boolean().default(false),
@@ -154,7 +156,7 @@ CATEGORIES:
         }),
         z.object({
           op: z.literal("delete"),
-          category: z.enum(["profile", "preference", "event", "academic", "people"]),
+          category: z.enum(["profile", "preference", "event", "academic", "people", "career", "project"]),
           key: z.string(),
         }),
       ])
