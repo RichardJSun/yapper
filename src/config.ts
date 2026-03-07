@@ -23,8 +23,13 @@ if (!parsed.success) {
 export const config = parsed.data;
 
 // ── Model constants (single source of truth) ───────────────
-export const MODEL = "moonshotai/kimi-k2.5";
-export const VISION_MODEL = "moonshotai/kimi-k2.5";
+// Primary conversational model used for responding to user messages
+export const MODEL = "deepseek/deepseek-v3.2";
+// Used for responding when there are image attachments
+export const VISION_MODEL = "alibaba/qwen3.5-flash";
+// Used for lower-priority background tasks: proactive messages, summaries, and onboarding
 export const ALT_MODEL = "deepseek/deepseek-v3.2-thinking";
+// Used as a reliable fallback when the primary model hits rate limits or API errors
 export const FALLBACK_MODEL = "openai/gpt-4o-mini";
+// Used to generate vector embeddings for semantic memory search
 export const EMBED_MODEL = "openai/text-embedding-3-small";
