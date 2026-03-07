@@ -270,9 +270,8 @@ export function searchMemoriesSemantic(embeddingArray: number[]): VecSearchRow[]
     SELECT m.category, m.key, m.value, m.updated_at, m.source, m.target_date, v.distance
     FROM vec_memories v
     JOIN memories m ON v.id = m.id
-    WHERE v.embedding MATCH ?
+    WHERE v.embedding MATCH ? AND k = 5
     ORDER BY distance ASC
-    LIMIT 5
   `).all(new Float32Array(embeddingArray));
 }
 
