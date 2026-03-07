@@ -4,7 +4,11 @@ Yapper is an AI Discord Assistant built with `discord.js`, the `ai` SDK, and `sq
 
 ## Features
 
-- **Context Compaction**: Automatically compresses conversational context to maintain relevance without exceeding token limits.
+- **Context Compaction (Sliding Window & Rolling Summary)**: To balance perfect short-term recall with unlimited long-term memory while keeping token costs near-zero:
+  - The bot maintains a strict sliding window of the most recent ~30 messages, giving the AI verbatim transcripts of the immediate conversation.
+  - When the window overflows, a background processor (using a cheap, high-reasoning model like DeepSeek) slices the oldest 15 messages and compresses them into a dense summary paragraph.
+  - This summary is permanently injected into the top of the context window. The oldest 15 messages are then archived to SQLite and never sent to the API again.
+  - Result: Infinite memory of the conversation's broad strokes, perfect word-for-word recall of the current topic, and permanently capped API token throughput.
 - **Memory**: Persistent long-term memory managed via SQLite and `sqlite-vec`.
 - **Proactive Messaging**: The bot can initiate conversations or send messages based on triggers rather than just responding to prompts.
 - **Scheduled Messaging**: Includes the ability to schedule messages for future delivery.
