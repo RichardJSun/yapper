@@ -249,7 +249,7 @@ async function processBatch(
         model,
         system: fullSystemPrompt,
         messages: apiHistory,
-        maxOutputTokens: 400,
+        maxOutputTokens: 800,
         providerOptions: {
           gateway: { caching: 'auto' },
           openai: { reasoningEffort: 'low' },
