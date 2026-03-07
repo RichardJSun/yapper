@@ -239,6 +239,12 @@ export function getAllMemories(): MemoryRow[] {
   ).all();
 }
 
+export function hasCategoryMemory(category: string): boolean {
+  return db.query<{ id: number }, [string]>(
+    `SELECT id FROM memories WHERE category = ? LIMIT 1`
+  ).get(category) !== null;
+}
+
 export function searchMemories(term: string): string | null {
   const wildcard = `%${term}%`;
   const rows = db.query<MemoryRow, [string, string]>(
