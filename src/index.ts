@@ -165,7 +165,7 @@ ${YOUR_NAME} is a student. When academic stress is present:
   prompt += `\n\nCurrent time: ${DATE}`;
 
   if (summaryText) {
-    prompt += `\n\n--- EARLIER CONVERSATION SUMMARY ---\n${summaryText}`;
+    prompt += `\n\n--- TEMPORARY CONVERSATION SUMMARY ---\n(This is a rolling summary of older messages. It will soon be overwritten entirely. If there are new facts here not in your permanent memory, use save_memory!)\n${summaryText}`;
   }
 
   if (memoriesList) {
