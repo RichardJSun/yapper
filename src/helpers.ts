@@ -128,7 +128,7 @@ export const webSearchTool = tool({
 });
 
 export const saveMemoryTool = tool({
-  description: `Persist facts about ${YOUR_NAME} to memory. Err heavily on saving. Delete when user corrects a fact.
+  description: `Persist facts about ${YOUR_NAME} and the people in their life to memory. Err heavily on saving. Delete when user corrects a fact.
 DUPLICATION: If user updates an ongoing class/event not in context, call query_memory first to find exact key.
 DURABLE: true for significant life facts (family, health, housing). false for transient/academic items.
 TARGET_DATE: Unix MS timestamp for future exams/events. Empty for past/present facts.
@@ -136,13 +136,14 @@ CATEGORIES:
 - profile: name, age, location, health
 - preference: hobbies, food, routines
 - event: social/life events
-- academic: exams, deadlines, grades`,
+- academic: exams, deadlines, grades
+- people: friends, family, relationships, people they mention`,
   inputSchema: z.object({
     ops: z.array(
       z.discriminatedUnion("op", [
         z.object({
           op: z.literal("upsert"),
-          category: z.enum(["profile", "preference", "event", "academic"]),
+          category: z.enum(["profile", "preference", "event", "academic", "people"]),
           key: z.string(),
           value: z.string(),
           durable: z.boolean().default(false),
@@ -153,7 +154,7 @@ CATEGORIES:
         }),
         z.object({
           op: z.literal("delete"),
-          category: z.enum(["profile", "preference", "event", "academic"]),
+          category: z.enum(["profile", "preference", "event", "academic", "people"]),
           key: z.string(),
         }),
       ])

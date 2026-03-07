@@ -288,6 +288,7 @@ export function formatMemoriesForPrompt(): string | null {
        OR (target_date IS NOT NULL AND target_date > ?1)
        OR category = 'profile'
        OR category = 'preference'
+       OR category = 'people'
        OR (category = 'academic' AND source = 'auto' AND updated_at > ?2)
        OR (category = 'event'    AND source = 'auto' AND updated_at > ?3)
     ORDER BY category, key
