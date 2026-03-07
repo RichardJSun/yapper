@@ -1,4 +1,5 @@
-import { generateText, embed, tool, createGateway, type ModelMessage, type ToolSet, type JSONValue } from "ai";
+import { generateText, embed, tool, createGateway, wrapLanguageModel, type ModelMessage, type ToolSet, type JSONValue } from "ai";
+import { devToolsMiddleware } from "@ai-sdk/devtools";
 import { z } from "zod";
 import type { Message, TextChannel, DMChannel } from "discord.js";
 import { config, ALT_MODEL, FALLBACK_MODEL, EMBED_MODEL } from "./config.js";
@@ -20,7 +21,14 @@ const aiGateway = createGateway({
 // ── Model resolution ───────────────────────────────────────
 
 function resolveModel(modelId: string) {
-  return aiGateway(modelId);
+  const baseModel = aiGateway(modelId);
+  if (config.ENABLE_TELEMETRY) {
+    return wrapLanguageModel({
+      model: baseModel,
+      middleware: devToolsMiddleware(),
+    });
+  }
+  return baseModel;
 }
 
 // ── Embedding ──────────────────────────────────────────────

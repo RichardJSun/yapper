@@ -7,6 +7,7 @@ const envSchema = z.object({
   YOUR_NAME: z.string().min(1, "YOUR_NAME is required"),
   COMPANION_NAME: z.string().min(1, "COMPANION_NAME is required"),
   TZ: z.string().default("America/New_York"),
+  ENABLE_TELEMETRY: z.string().optional().transform(v => v === "true"),
 });
 
 const parsed = envSchema.safeParse(process.env);
