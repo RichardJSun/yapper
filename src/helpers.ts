@@ -1,8 +1,8 @@
-import { generateText, embed, tool, createGateway, wrapLanguageModel, type ModelMessage, type ToolSet, type JSONValue } from "ai";
+import { generateText, embed, tool, createGateway, wrapLanguageModel, generateObject, type ModelMessage, type ToolSet, type JSONValue } from "ai";
 import { devToolsMiddleware } from "@ai-sdk/devtools";
 import { z } from "zod";
 import type { Message, TextChannel, DMChannel } from "discord.js";
-import { config, ALT_MODEL, FALLBACK_MODEL, EMBED_MODEL } from "./config.js";
+import { config, ALT_MODEL, FALLBACK_MODEL, EMBED_MODEL, ROUTER_MODEL } from "./config.js";
 import {
   upsertMemory,
   deleteMemory,
@@ -101,6 +101,25 @@ export async function safeGenerateText(
   }
 
   return attempt(resolved);
+}
+
+// ── Router ─────────────────────────────────────────────────
+
+export async function requiresDeepThinking(messages: ModelMessage[]): Promise<boolean> {
+  try {
+    const { object } = await generateObject({
+      model: resolveModel(ROUTER_MODEL),
+      schema: z.object({
+        requiresThinking: z.boolean().describe("True if the most recent user prompt requires deep thought (such as complex math, highly logical puzzles, tricky coding problems, or deep multi-step reasoning). False for general conversation, emotional support, casual chat, or simple factual lookups."),
+      }),
+      system: "You are a rigid routing classifier. You must output exactly the requested JSON schedule and NOTHING ELSE. Do not include chat responses.",
+      messages: messages.slice(-5), // Only need recent context to decide intent, keeps it fast
+    });
+    return object.requiresThinking;
+  } catch (err) {
+    console.warn("[requiresDeepThinking] Router failed, falling back to standard intent:", (err as Error).message);
+    return false; // Safely fall back to standard model
+  }
 }
 
 // ── Tools ──────────────────────────────────────────────────
@@ -313,8 +332,8 @@ export const reactTool = tool({
 // ── Utilities ──────────────────────────────────────────────
 
 export function sendTypingLoop(channel: TextChannel | DMChannel): ReturnType<typeof setInterval> {
-  channel.sendTyping().catch(() => {});
-  return setInterval(() => channel.sendTyping().catch(() => {}), 9000);
+  channel.sendTyping().catch(() => { });
+  return setInterval(() => channel.sendTyping().catch(() => { }), 9000);
 }
 
 export function isSendableChannel(channel: unknown): boolean {

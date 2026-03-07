@@ -33,3 +33,5 @@ export const ALT_MODEL = "deepseek/deepseek-v3.2-thinking";
 export const FALLBACK_MODEL = "openai/gpt-4o-mini";
 // Used to generate vector embeddings for semantic memory search
 export const EMBED_MODEL = "openai/text-embedding-3-small";
+// Used for high-speed routing and intent classification before primary generation
+export const ROUTER_MODEL = "mistral/ministral-3b";

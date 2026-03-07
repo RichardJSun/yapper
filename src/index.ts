@@ -50,6 +50,7 @@ import {
   isSendableChannel,
   chunkText,
   stripImageParts,
+  requiresDeepThinking,
 } from "./helpers.js";
 import { processAttachments } from "./attachments.js";
 import { maybeCompress } from "./compressor.js";
@@ -248,12 +249,20 @@ async function processBatch(
   // Build the dynamic system prompt
   const fullSystemPrompt = buildSystemPrompt();
 
-  const model = modelOverride ?? (allImages.length > 0 ? VISION_MODEL : MODEL);
+  let activeModel = modelOverride;
+  if (!activeModel) {
+    if (allImages.length > 0) {
+      activeModel = VISION_MODEL;
+    } else {
+      const needsThinking = await requiresDeepThinking(apiHistory);
+      activeModel = needsThinking ? ALT_MODEL : MODEL;
+    }
+  }
 
   try {
     const result = await safeGenerateText(
       {
-        model,
+        model: activeModel,
         system: fullSystemPrompt,
         messages: apiHistory,
         maxOutputTokens: 800,
