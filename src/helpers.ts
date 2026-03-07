@@ -122,7 +122,7 @@ export const webSearchTool = tool({
 });
 
 export const saveMemoryTool = tool({
-  description: `Persist facts about ${YOUR_NAME} and the people in their life to memory. History is TEMPORARY and will be forgotten. Err heavily on saving. Delete when user corrects a fact.
+  description: `Persist facts about ${YOUR_NAME}, the people in their life, and your own evolving personality/preferences (${COMPANION_NAME}) to memory. History is TEMPORARY and will be forgotten. Err heavily on saving. Delete when user corrects a fact.
 DUPLICATION: If user updates an ongoing class/event not in context, call query_memory first to find exact key.
 DURABLE: true for significant life facts (family, health, housing). false for transient/academic items.
 TARGET_DATE: Unix MS timestamp for future exams/events. Empty for past/present facts.
