@@ -45,14 +45,11 @@ export async function getEmbedding(text: string): Promise<number[]> {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-interface SafeGenerateParams {
+type GenerateTextParams = Parameters<typeof generateText>[0];
+
+interface SafeGenerateParams extends Omit<GenerateTextParams, "model" | "messages"> {
   model: string;
-  system?: string;
   messages: ModelMessage[];
-  maxOutputTokens?: number;
-  tools?: ToolSet;
-  stopWhen?: Parameters<typeof generateText>[0]["stopWhen"];
-  providerOptions?: Record<string, Record<string, JSONValue>>;
 }
 
 interface AIError extends Error {
@@ -64,14 +61,15 @@ export async function safeGenerateText(
   params: SafeGenerateParams,
   fallbackModel?: string
 ): Promise<Awaited<ReturnType<typeof generateText>>> {
-  const resolved = {
+  // Resolve the model ID into an actual LanguageModel instance
+  const resolvedParams = {
     ...params,
     model: resolveModel(params.model),
-  };
+  } as unknown as GenerateTextParams;
 
-  async function attempt(resolvedParams: typeof resolved) {
+  async function attempt(currentParams: GenerateTextParams) {
     try {
-      return await generateText(resolvedParams);
+      return await generateText(currentParams);
     } catch (err) {
       const error = err as AIError;
       const status = error.statusCode ?? error.status;
@@ -80,27 +78,29 @@ export async function safeGenerateText(
       if (status && status >= 500 && status <= 504) {
         console.warn(`[safeGenerateText] ${status} — retrying in 1s`);
         await sleep(1000);
-        return await generateText(resolvedParams);
+        return await generateText(currentParams);
       }
 
       // Rate limit / quota: fallback to alt model
       if ((status === 429 || status === 402) && fallbackModel) {
         console.warn(`[safeGenerateText] ${status} — falling back to ${fallbackModel}`);
         const strippedMessages = params.messages.map(stripImageParts) as ModelMessage[];
-        return await generateText({
-          ...resolvedParams,
+        
+        const fallbackParams = {
+          ...currentParams,
           model: resolveModel(fallbackModel),
           messages: strippedMessages,
-          // Keep tools available on fallback so tool calls still work
           stopWhen: undefined,
-        });
+        } as unknown as GenerateTextParams;
+        
+        return await generateText(fallbackParams);
       }
 
       throw err;
     }
   }
 
-  return attempt(resolved);
+  return attempt(resolvedParams);
 }
 
 // ── Router ─────────────────────────────────────────────────
@@ -390,7 +390,7 @@ export function chunkText(text: string, maxLen: number = 1900): string[] {
   return chunks;
 }
 
-export function stripImageParts(msg: ModelMessage | { role: string; content: unknown }): ModelMessage | { role: string; content: unknown } {
+export function stripImageParts<T extends { role: string; content: unknown }>(msg: T): T {
   if (!Array.isArray(msg.content)) return msg;
   return {
     ...msg,
