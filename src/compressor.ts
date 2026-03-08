@@ -59,7 +59,7 @@ export async function maybeCompress(history: HistoryEntry[]): Promise<HistoryEnt
       {
         model: ALT_MODEL,
         messages: [{ role: "user", content }],
-        maxOutputTokens: 400,
+        maxOutputTokens: 2000,
         providerOptions: {
           gateway: { caching: 'auto' },
           openai: { reasoningEffort: 'low' } satisfies OpenAIChatLanguageModelOptions,

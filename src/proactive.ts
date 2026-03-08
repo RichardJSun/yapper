@@ -229,7 +229,7 @@ Send a warm, brief good morning. Reference something personal if you know it, li
 1-2 sentences max. No 'good morning!' openers.`,
           },
         ],
-        maxOutputTokens: 120,
+        maxOutputTokens: 2000,
         providerOptions: {
           gateway: { caching: 'auto' },
           openai: { reasoningEffort: 'low' } satisfies OpenAIChatLanguageModelOptions,
@@ -276,7 +276,7 @@ Check in casually. If they had something today (class, exam, event), ask about i
 1-2 sentences max. Don't start with 'Hey!' or 'How was your day?'.`,
           },
         ],
-        maxOutputTokens: 120,
+        maxOutputTokens: 2000,
         providerOptions: {
           gateway: { caching: 'auto' },
           openai: { reasoningEffort: 'low' } satisfies OpenAIChatLanguageModelOptions,
@@ -368,7 +368,7 @@ No generic check-ins. No 'just thinking of you'. Reference something real.
 Reply: YES: <message> or NO`,
               },
             ],
-            maxOutputTokens: 150,
+            maxOutputTokens: 2000,
             providerOptions: {
               gateway: { caching: 'auto' },
               openai: { reasoningEffort: 'low' } satisfies OpenAIChatLanguageModelOptions,

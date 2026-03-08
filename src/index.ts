@@ -271,7 +271,7 @@ async function processBatch(
         model: activeModel,
         system: fullSystemPrompt,
         messages: apiHistory,
-        maxOutputTokens: 800,
+        maxOutputTokens: 2000,
         providerOptions: {
           gateway: { caching: 'auto' },
           openai: { reasoningEffort: 'low' } satisfies OpenAIChatLanguageModelOptions,
@@ -657,7 +657,7 @@ Send a quick first message introducing yourself. Ask them purely logistically:
 2. What are their communication preferences? (e.g. lots of check-ins vs quiet, giving advice vs just listening)`,
               },
             ],
-            maxOutputTokens: 200,
+            maxOutputTokens: 2000,
           },
           ALT_MODEL
         );
