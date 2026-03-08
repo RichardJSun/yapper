@@ -261,18 +261,29 @@ export const queryMemoryTool = tool({
 });
 
 export const scheduleMessageTool = tool({
-  description: `Schedule a message to send to ${YOUR_NAME} at a specific future time (e.g. night before exam, after emotional talk). Use generously after meaningful conversations.
+  description: `Schedule a message to send to ${YOUR_NAME} at a specific future time. Use generously after meaningful conversations.
 Set event_key to match a memory key if one exists to prevent duplicate scheduling.`,
   inputSchema: z.object({
     message: z.string().describe("The exact message to send. Write it naturally, in your voice."),
-    fire_at_ms: z.number().describe("Unix timestamp in milliseconds for when to send."),
+    fire_at_ms: z
+      .number()
+      .optional()
+      .describe("Unix timestamp in milliseconds for when to send. Use for specific calendar times."),
+    offset_ms: z
+      .number()
+      .optional()
+      .describe("Number of milliseconds from now to wait. Use for relative times like 'in 2 hours'."),
     event_key: z
       .string()
       .optional()
       .describe('Deduplication key matching a memory key, e.g. "exam_cs301".'),
+  }).refine(data => data.fire_at_ms !== undefined || data.offset_ms !== undefined, {
+    message: "Either fire_at_ms or offset_ms must be provided",
+    path: ["fire_at_ms"]
   }),
-  execute: async ({ message, fire_at_ms, event_key }) => {
-    scheduleOneShot(fire_at_ms, message, event_key ?? null);
+  execute: async ({ message, fire_at_ms, offset_ms, event_key }) => {
+    const fireAt = fire_at_ms ?? (offset_ms ? Date.now() + offset_ms : Date.now());
+    scheduleOneShot(fireAt, message, event_key ?? null);
     // Trigger timer reschedule (imported dynamically to avoid circular dep)
     try {
       // @ts-ignore — dynamic import to break circular dependency
@@ -281,7 +292,7 @@ Set event_key to match a memory key if one exists to prevent duplicate schedulin
     } catch {
       // proactive module may not be loaded yet at startup
     }
-    return { scheduled: true, fire_at_ms };
+    return { scheduled: true, fire_at_ms: fireAt };
   },
 });
 
