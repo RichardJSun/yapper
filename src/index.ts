@@ -466,7 +466,12 @@ async function handleSlashCommand(interaction: ChatInputCommandInteraction): Pro
         // No input provided -> view current style
         const currentStyle = getMeta("user_style");
         if (currentStyle) {
-          await interaction.reply({ content: `**Current Style Preferences:**\n${currentStyle}`, flags: MessageFlags.Ephemeral });
+          const text = `**Current Style Preferences:**\n${currentStyle}`;
+          const chunks = chunkText(text, 1900);
+          await interaction.reply({ content: chunks[0], flags: MessageFlags.Ephemeral });
+          for (const chunk of chunks.slice(1)) {
+            await interaction.followUp({ content: chunk, flags: MessageFlags.Ephemeral });
+          }
         } else {
           await interaction.reply({ content: "No custom style preferences are currently set.", flags: MessageFlags.Ephemeral });
         }
@@ -477,7 +482,13 @@ async function handleSlashCommand(interaction: ChatInputCommandInteraction): Pro
       } else {
         // Input provided -> set the new style
         setMeta("user_style", instructions);
-        await interaction.reply({ content: `✓ Style preferences updated to:\n"${instructions}"`, flags: MessageFlags.Ephemeral });
+        
+        const text = `✓ Style preferences updated to:\n"${instructions}"`;
+        const chunks = chunkText(text, 1900);
+        await interaction.reply({ content: chunks[0], flags: MessageFlags.Ephemeral });
+        for (const chunk of chunks.slice(1)) {
+          await interaction.followUp({ content: chunk, flags: MessageFlags.Ephemeral });
+        }
       }
       return;
     }

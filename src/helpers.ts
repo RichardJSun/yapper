@@ -349,15 +349,32 @@ export function isSendableChannel(channel: unknown): boolean {
 }
 
 export function chunkText(text: string, maxLen: number = 1900): string[] {
+  if (!text) return [];
   const chunks: string[] = [];
   let remaining = text;
+  
   while (remaining.length > maxLen) {
     let idx = remaining.lastIndexOf("\n", maxLen);
-    if (idx === -1) idx = maxLen;
-    chunks.push(remaining.slice(0, idx));
+    
+    // If no newline, try space
+    if (idx === -1) {
+      idx = remaining.lastIndexOf(" ", maxLen);
+    }
+    
+    // If no space, force split at maxLen
+    if (idx === -1) {
+      idx = maxLen;
+    }
+    
+    const chunk = remaining.slice(0, idx).trim();
+    if (chunk) chunks.push(chunk);
+    
     remaining = remaining.slice(idx).trimStart();
   }
-  if (remaining) chunks.push(remaining);
+  
+  const finalChunk = remaining.trim();
+  if (finalChunk) chunks.push(finalChunk);
+  
   return chunks;
 }
 
