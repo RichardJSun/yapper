@@ -66,14 +66,23 @@ export function scheduleNextTimer(): void {
   }
 
   // If we're already executing a scheduled message, don't re-enter.
-  // The in-flight execution will call scheduleNextTimer() when it finishes.
   if (isExecutingScheduled) return;
 
   const nextMsg = getNextScheduledMessage();
   if (!nextMsg) return;
 
-  const delay = nextMsg.fire_at - Date.now();
+  const now = Date.now();
+  const delay = nextMsg.fire_at - now;
+
   if (delay <= 0) {
+    // If the message is older than 1 hour, it's likely stale or from a hallucinated past timestamp.
+    // Mark it as sent to clear it from the queue without sending.
+    if (Math.abs(delay) > 60 * 60 * 1000) {
+      console.warn(`[proactive] Skipping stale scheduled message (ID: ${nextMsg.id}, fire_at: ${nextMsg.fire_at})`);
+      markSent(nextMsg.id);
+      scheduleNextTimer();
+      return;
+    }
     executeScheduledMessage(nextMsg.id, nextMsg.message);
   } else {
     currentOneShotTimer = setTimeout(
