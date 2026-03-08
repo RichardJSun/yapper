@@ -12,6 +12,7 @@ export interface MessageRow {
   content: string;
   is_archived: number;
   created_at: number;
+  is_proactive: number;
 }
 
 export interface QueueRow {
@@ -75,7 +76,8 @@ db.exec(`
     role        TEXT NOT NULL,
     content     TEXT NOT NULL,
     is_archived INTEGER DEFAULT 0,
-    created_at  INTEGER DEFAULT (strftime('%s','now'))
+    created_at  INTEGER DEFAULT (strftime('%s','now')),
+    is_proactive INTEGER DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS inbound_queue (
@@ -128,10 +130,10 @@ const MAX_MESSAGES = 40;
 
 // ── Messages ───────────────────────────────────────────────
 
-export function addMessage(role: "user" | "assistant", content: string | unknown): void {
+export function addMessage(role: "user" | "assistant", content: string | unknown, isProactive: boolean = false): void {
   const text = typeof content === "string" ? content : JSON.stringify(content);
-  db.query(`INSERT INTO messages (role, content) VALUES ($role, $content)`)
-    .run({ $role: role, $content: text });
+  db.query(`INSERT INTO messages (role, content, is_proactive) VALUES ($role, $content, $isProactive)`)
+    .run({ $role: role, $content: text, $isProactive: isProactive ? 1 : 0 });
 
   const { count } = db.query<{ count: number }, []>(
     `SELECT COUNT(*) as count FROM messages WHERE is_archived = 0`
@@ -150,11 +152,12 @@ export interface HistoryEntry {
   role: string;
   content: unknown;
   created_at: number;
+  is_proactive: boolean;
 }
 
 export function getHistory(): HistoryEntry[] {
   const rows = db.query<MessageRow, []>(
-    `SELECT role, content, created_at FROM messages WHERE is_archived = 0 ORDER BY id ASC`
+    `SELECT role, content, created_at, is_proactive FROM messages WHERE is_archived = 0 ORDER BY id ASC`
   ).all();
 
   return rows.map((row) => {
@@ -164,7 +167,7 @@ export function getHistory(): HistoryEntry[] {
     } catch {
       parsed = row.content;
     }
-    return { role: row.role, content: parsed, created_at: row.created_at };
+    return { role: row.role, content: parsed, created_at: row.created_at, is_proactive: row.is_proactive === 1 };
   });
 }
 
