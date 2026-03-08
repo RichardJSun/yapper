@@ -165,6 +165,12 @@ ${YOUR_NAME} is a student. When academic stress is present:
 
   prompt += `\n\nCurrent time: ${DATE}`;
 
+  prompt += `\n\n--- SCHEDULING GUIDELINES ---
+When scheduling messages:
+1. Always check the current time above. Ensure the year is ${new Date().getFullYear()} for any calendar time calculations.
+2. For relative times (e.g., "in 2 hours", "later today"), PREFER using the 'offset_ms' parameter to avoid math errors.
+3. For specific calendar times (e.g., "tomorrow morning", "Friday at 5pm"), use 'fire_at_ms'.`;
+
   if (summaryText) {
     prompt += `\n\n--- TEMPORARY CONVERSATION SUMMARY ---\n(This is a rolling summary of older messages. It will soon be overwritten entirely. If there are new facts here not in your permanent memory, use save_memory!)\n${summaryText}`;
   }
