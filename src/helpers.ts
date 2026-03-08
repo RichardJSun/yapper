@@ -189,6 +189,7 @@ CATEGORIES:
   execute: async ({ ops }) => {
     for (const op of ops) {
       if (op.op === "upsert") {
+        const type = op.category === "self" ? "assistant" : "user";
         const source = op.durable ? "explicit" : "auto";
         const targetDate = op.target_date_ms ?? null;
 
@@ -201,10 +202,11 @@ CATEGORIES:
           console.warn("[saveMemory] Embedding failed, saving without vector:", (err as Error).message);
         }
 
-        upsertMemory(op.category, op.key, op.value, source, targetDate, embedding);
+        upsertMemory(type, op.category, op.key, op.value, source, targetDate, embedding);
       }
       if (op.op === "delete") {
-        deleteMemory(op.category, op.key);
+        const type = op.category === "self" ? "assistant" : "user";
+        deleteMemory(type, op.category, op.key);
       }
     }
 

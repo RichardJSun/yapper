@@ -2,6 +2,7 @@ import { Database } from "bun:sqlite";
 import * as sqliteVec from "sqlite-vec";
 import { existsSync } from "node:fs";
 import { config } from "./config.js";
+import { encode } from "@toon-format/toon";
 
 // ── Row types ──────────────────────────────────────────────
 
@@ -25,6 +26,7 @@ export interface QueueRow {
 
 export interface MemoryRow {
   id: number;
+  type: "user" | "assistant";
   category: string;
   key: string;
   value: string;
@@ -89,13 +91,14 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS memories (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    type        TEXT DEFAULT 'user', -- 'user' or 'assistant'
     category    TEXT NOT NULL,
     key         TEXT NOT NULL,
     value       TEXT NOT NULL,
     source      TEXT DEFAULT 'auto',
     target_date INTEGER DEFAULT NULL,
     updated_at  INTEGER DEFAULT (strftime('%s','now')),
-    UNIQUE(category, key)
+    UNIQUE(type, category, key)
   );
 
   CREATE VIRTUAL TABLE IF NOT EXISTS vec_memories USING vec0(
@@ -194,6 +197,7 @@ export function setSummary(text: string): void {
 // ── Memories ───────────────────────────────────────────────
 
 export function upsertMemory(
+  type: "user" | "assistant",
   category: string,
   key: string,
   value: string,
@@ -202,16 +206,16 @@ export function upsertMemory(
   embeddingArray?: number[]
 ): void {
   db.transaction(() => {
-    const result = db.query<{ id: number }, [string, string, string, string, number | null]>(
-      `INSERT INTO memories (category, key, value, source, target_date, updated_at)
-       VALUES (?, ?, ?, ?, ?, strftime('%s','now'))
-       ON CONFLICT(category, key) DO UPDATE SET
+    const result = db.query<{ id: number }, [string, string, string, string, string, number | null]>(
+      `INSERT INTO memories (type, category, key, value, source, target_date, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, strftime('%s','now'))
+       ON CONFLICT(type, category, key) DO UPDATE SET
          value = excluded.value,
          source = excluded.source,
          target_date = excluded.target_date,
          updated_at = strftime('%s','now')
        RETURNING id`
-    ).get(category, key, value, source, targetDate);
+    ).get(type, category, key, value, source, targetDate);
 
     if (result && embeddingArray) {
       db.query(
@@ -221,12 +225,12 @@ export function upsertMemory(
   })();
 }
 
-export function deleteMemory(category: string, key: string): void {
-  const row = db.query<{ id: number }, [string, string]>(
-    `SELECT id FROM memories WHERE category = ? AND key = ?`
-  ).get(category, key);
+export function deleteMemory(type: "user" | "assistant", category: string, key: string): void {
+  const row = db.query<{ id: number }, [string, string, string]>(
+    `SELECT id FROM memories WHERE type = ? AND category = ? AND key = ?`
+  ).get(type, category, key);
 
-  db.query(`DELETE FROM memories WHERE category = ? AND key = ?`).run(category, key);
+  db.query(`DELETE FROM memories WHERE type = ? AND category = ? AND key = ?`).run(type, category, key);
 
   if (row) {
     db.query(`DELETE FROM vec_memories WHERE id = ?`).run(row.id);
@@ -235,7 +239,7 @@ export function deleteMemory(category: string, key: string): void {
 
 export function getAllMemories(): MemoryRow[] {
   return db.query<MemoryRow, []>(
-    `SELECT * FROM memories ORDER BY category, key`
+    `SELECT * FROM memories ORDER BY type, category, key`
   ).all();
 }
 
@@ -248,7 +252,7 @@ export function hasCategoryMemory(category: string): boolean {
 export function searchMemories(term: string): string | null {
   const wildcard = `%${term}%`;
   const rows = db.query<MemoryRow, [string, string]>(
-    `SELECT category, key, value, updated_at, source, target_date
+    `SELECT type, category, key, value, updated_at, source, target_date
      FROM memories
      WHERE key LIKE ? OR value LIKE ?
      ORDER BY updated_at DESC
@@ -260,14 +264,15 @@ export function searchMemories(term: string): string | null {
   return rows
     .map((r) => {
       const date = new Date(r.updated_at * 1000).toLocaleDateString();
-      return `[${r.category.toUpperCase()}] ${r.key}: ${r.value} (Saved: ${date})`;
+      const owner = r.type === "assistant" ? "[SELF]" : `[${r.category.toUpperCase()}]`;
+      return `${owner} ${r.key}: ${r.value} (Saved: ${date})`;
     })
     .join("\n");
 }
 
 export function searchMemoriesSemantic(embeddingArray: number[]): VecSearchRow[] {
   return db.query<VecSearchRow, [Float32Array]>(`
-    SELECT m.category, m.key, m.value, m.updated_at, m.source, m.target_date, v.distance
+    SELECT m.type, m.category, m.key, m.value, m.updated_at, m.source, m.target_date, v.distance
     FROM vec_memories v
     JOIN memories m ON v.id = m.id
     WHERE v.embedding MATCH ? AND k = 5
@@ -285,49 +290,49 @@ export function formatMemoriesForPrompt(): { userMemories: string | null; selfMe
     SELECT * FROM memories
     WHERE source = 'explicit'
        OR (target_date IS NOT NULL AND target_date > ?1)
-       OR category = 'profile'
-       OR category = 'preference'
-       OR category = 'people'
-       OR category = 'career'
-       OR category = 'project'
-       OR category = 'health'
-       OR (category = 'self'     AND source = 'auto' AND updated_at > ?3)
-       OR (category = 'misc'     AND source = 'auto' AND updated_at > ?3)
-       OR (category = 'academic' AND source = 'auto' AND updated_at > ?2)
-       OR (category = 'event'    AND source = 'auto' AND updated_at > ?3)
-    ORDER BY category, key
+       OR (type = 'user' AND (
+            category = 'profile'
+         OR category = 'preference'
+         OR category = 'people'
+         OR category = 'career'
+         OR category = 'project'
+         OR category = 'health'
+         OR (category = 'misc'     AND source = 'auto' AND updated_at > ?3)
+         OR (category = 'academic' AND source = 'auto' AND updated_at > ?2)
+         OR (category = 'event'    AND source = 'auto' AND updated_at > ?3)
+       ))
+       OR (type = 'assistant' AND updated_at > ?3)
+    ORDER BY type, category, key
   `).all(nowMs, cutoff14d, cutoff30d);
 
   if (filtered.length === 0) return { userMemories: null, selfMemories: null };
 
-  // Group by category
-  const userGroups = new Map<string, string[]>();
-  const selfLines: string[] = [];
+  // Group by type and category
+  const userData: Record<string, string[]> = {};
+  const selfData: string[] = [];
+  
   for (const m of filtered) {
     const suffixes: string[] = [];
     if (m.source === "explicit") suffixes.push("durable");
     if (m.target_date !== null && m.target_date > nowMs) suffixes.push("future");
     const suffix = suffixes.length > 0 ? ` (${suffixes.join(", ")})` : "";
-    const line = `  - ${m.key}: ${m.value}${suffix}`;
+    const line = `${m.key}: ${m.value}${suffix}`;
 
-    const cat = m.category.toUpperCase();
-    if (m.category === "self") {
-      selfLines.push(line);
+    if (m.type === "assistant") {
+      selfData.push(line);
     } else {
-      if (!userGroups.has(cat)) userGroups.set(cat, []);
-      userGroups.get(cat)!.push(line);
+      const cat = m.category.toUpperCase();
+      if (!userData[cat]) userData[cat] = [];
+      userData[cat].push(line);
     }
   }
 
-  const userMemories = Array.from(userGroups.entries())
-    .map(([cat, lines]) => `[${cat}]\n${lines.join("\n")}`)
-    .join("\n");
-
-  const selfMemories = selfLines.join("\n");
+  const userMemories = Object.keys(userData).length > 0 ? encode(userData) : null;
+  const selfMemories = selfData.length > 0 ? encode(selfData) : null;
 
   return {
-    userMemories: userMemories.length > 0 ? userMemories : null,
-    selfMemories: selfMemories.length > 0 ? selfMemories : null,
+    userMemories,
+    selfMemories,
   };
 }
 

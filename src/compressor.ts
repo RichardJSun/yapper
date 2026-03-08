@@ -33,7 +33,7 @@ export async function maybeCompress(history: HistoryEntry[]): Promise<HistoryEnt
         text = JSON.stringify(msg.content);
       }
 
-      const dateStr = new Date(msg.created_at).toLocaleString("en-US", {
+      const dateStr = new Date(msg.created_at * 1000).toLocaleString("en-US", {
         timeZone: config.TZ,
         month: "short",
         day: "numeric",

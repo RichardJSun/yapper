@@ -170,11 +170,11 @@ ${YOUR_NAME} is a student. When academic stress is present:
   }
 
   if (userMemories) {
-    prompt += `\n\n--- WHAT YOU KNOW ABOUT ${YOUR_NAME} ---\n${userMemories}`;
+    prompt += `\n\n--- WHAT YOU KNOW ABOUT ${YOUR_NAME} (TOON format) ---\n${userMemories}`;
   }
 
   if (selfMemories) {
-    prompt += `\n\n--- WHAT YOU KNOW ABOUT YOURSELF ---\n${selfMemories}`;
+    prompt += `\n\n--- WHAT YOU KNOW ABOUT YOURSELF (TOON format) ---\n${selfMemories}`;
   }
 
   if (userStyle) {
@@ -592,7 +592,7 @@ client.once(Events.ClientReady, async () => {
     setMeta("last_seen", Date.now());
   }
   if (!getAllMemories().length) {
-    upsertMemory("profile", "companion_name", COMPANION_NAME, "explicit");
+    upsertMemory("assistant", "self", "name", COMPANION_NAME, "explicit");
   }
 
   // Start proactive scheduler

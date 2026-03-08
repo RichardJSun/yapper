@@ -199,7 +199,11 @@ async function handleMorning(): Promise<void> {
   }
   try {
     const recentHistory = formatRecentHistory();
-    const memories = formatMemoriesForPrompt() ?? "nothing yet";
+    const { userMemories, selfMemories } = formatMemoriesForPrompt();
+    const memories = [
+      userMemories ? `About ${YOUR_NAME}:\n${userMemories}` : "",
+      selfMemories ? `About yourself:\n${selfMemories}` : ""
+    ].filter(Boolean).join("\n\n") || "nothing yet";
 
     const { text } = await safeGenerateText(
       {
@@ -242,7 +246,11 @@ async function handleEvening(): Promise<void> {
   }
   try {
     const recentHistory = formatRecentHistory();
-    const memories = formatMemoriesForPrompt() ?? "nothing yet";
+    const { userMemories, selfMemories } = formatMemoriesForPrompt();
+    const memories = [
+      userMemories ? `About ${YOUR_NAME}:\n${userMemories}` : "",
+      selfMemories ? `About yourself:\n${selfMemories}` : ""
+    ].filter(Boolean).join("\n\n") || "nothing yet";
 
     const { text } = await safeGenerateText(
       {
@@ -329,7 +337,11 @@ function startIdleNudge(): void {
           .map((m) => `${m.key}: ${m.value}`)
           .join("\n") || "none";
 
-        const memories = formatMemoriesForPrompt() ?? "nothing yet";
+        const { userMemories, selfMemories } = formatMemoriesForPrompt();
+    const memories = [
+      userMemories ? `About ${YOUR_NAME}:\n${userMemories}` : "",
+      selfMemories ? `About yourself:\n${selfMemories}` : ""
+    ].filter(Boolean).join("\n\n") || "nothing yet";
 
         const { text } = await safeGenerateText(
           {
