@@ -153,17 +153,17 @@ export const saveMemoryTool = tool({
 DUPLICATION: If user updates an ongoing class/event not in context, call query_memory first to find exact key.
 DURABLE: true for significant life facts (family, health, housing). false for transient/academic items.
 TARGET_DATE: Unix MS timestamp for future exams/events. Empty for past/present facts.
-CATEGORIES:
-- profile: name, age, location
-- preference: hobbies, food, routines
-- event: social/life events
-- academic: exams, deadlines, grades
-- people: friends, family, relationships, people they mention
-- career: jobs, internships, interviews, professional goals
-- project: side projects, coding, creative work
-- health: physical/mental health, diet, exercise habits
-- misc: any other important facts that don't fit above categories
-- self: facts about yourself, your evolving personality, or your own preferences`,
+CATEGORIES (These are broad buckets; the examples are suggestions, not rigid limits):
+- profile: e.g. ${YOUR_NAME}'s name, age, location, identity
+- preference: e.g. ${YOUR_NAME}'s hobbies, food, routines, likes/dislikes
+- event: e.g. ${YOUR_NAME}'s social/life events, trips, plans
+- academic: e.g. ${YOUR_NAME}'s exams, deadlines, grades, classes
+- people: e.g. ${YOUR_NAME}'s friends, family, relationships, people they mention
+- career: e.g. ${YOUR_NAME}'s jobs, internships, interviews, professional goals
+- project: e.g. ${YOUR_NAME}'s side projects, coding, creative work
+- health: e.g. ${YOUR_NAME}'s physical/mental health, diet, exercise habits
+- misc: any other important facts about ${YOUR_NAME} that don't fit above
+- self: EXCLUSIVELY for facts about YOURSELF (${COMPANION_NAME}), your evolving personality, or your own preferences`,
   inputSchema: z.object({
     ops: z.array(
       z.discriminatedUnion("op", [
