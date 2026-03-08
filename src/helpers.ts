@@ -1,4 +1,4 @@
-import { generateText, embed, tool, createGateway, wrapLanguageModel, generateObject, type ModelMessage, type ToolSet, type JSONValue } from "ai";
+import { generateText, Output, embed, tool, createGateway, wrapLanguageModel, type ModelMessage, type ToolSet, type JSONValue } from "ai";
 import { devToolsMiddleware } from "@ai-sdk/devtools";
 import { z } from "zod";
 import type { Message, TextChannel, DMChannel } from "discord.js";
@@ -107,15 +107,16 @@ export async function safeGenerateText(
 
 export async function requiresDeepThinking(messages: ModelMessage[]): Promise<boolean> {
   try {
-    const { object } = await generateObject({
+    const { output } = await generateText({
       model: resolveModel(ROUTER_MODEL),
-      schema: z.object({
-        requiresThinking: z.boolean().describe("True if the most recent user prompt requires deep thought (such as complex math, highly logical puzzles, tricky coding problems, or deep multi-step reasoning). False for general conversation, emotional support, casual chat, or simple factual lookups."),
+      output: Output.choice({
+        options: ["true", "false"],
+        description: "Decide if the most recent user prompt requires deep thought (such as complex math, highly logical puzzles, tricky coding problems, or deep multi-step reasoning, OR deep, emotionally complex, or long-form philosophical conversations).",
       }),
-      system: "You are a rigid routing classifier. You must output exactly the requested JSON schedule and NOTHING ELSE. Do not include chat responses.",
+      system: "You are a rigid routing classifier. You must output exactly the requested JSON choice and NOTHING ELSE. Do not include chat responses.",
       messages: messages.slice(-5), // Only need recent context to decide intent, keeps it fast
     });
-    return object.requiresThinking;
+    return output === "true";
   } catch (err) {
     console.warn("[requiresDeepThinking] Router failed, falling back to standard intent:", (err as Error).message);
     return false; // Safely fall back to standard model
