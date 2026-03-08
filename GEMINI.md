@@ -80,7 +80,7 @@ Throughout development, several crucial operational patterns have been establish
 
 1. **Tool Execution & Token Limits:**
    - **Reasoning Models:** Models like `deepseek-v3.2-thinking` consume significant output tokens for their internal "thoughts." When using these models with tools, `maxOutputTokens` must be set high (e.g., 2000+) to prevent the model from hitting limits and aborting before generating its final text response.
-   - **Turn Management:** Use `stopWhen: stepCountIs(N)` to allow multi-step tool calls (e.g., querying memory, then web searching, then responding). A step count of 4 is the baseline to prevent infinite loops while allowing necessary research.
+   - **Turn Management:** Use `stopWhen: stepCountIs(N)` to allow multi-step tool calls (e.g., querying memory, then web searching, then responding). A step count of 8 is the baseline to prevent infinite loops while allowing complex research and multiple actions.
    - **Parallel Execution:** Tools are divided into 'Research' and 'Action'. The system prompt explicitly instructs the AI to combine action tool calls (like saving memory and reacting) alongside text into a single turn whenever possible to reduce latency.
 2. **Temporal Awareness:**
    - **Timestamps:** To prevent hallucinations, the chat history provided to the AI explicitly includes formatted timestamps (`[HH:MM PM]`). This prevents the bot from becoming confused by the user referencing times relative to the "Current Time" injected into the prompt. The system prompt specifically forbids the AI from generating timestamps in its own responses to avoid mimicking.

@@ -306,7 +306,7 @@ async function processBatch(
           update_style: updateStylePreferenceTool,
           react: reactTool,
         },
-        stopWhen: stepCountIs(4),
+        stopWhen: stepCountIs(8),
       },
       FALLBACK_MODEL
     );

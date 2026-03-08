@@ -221,8 +221,9 @@ export function upsertMemory(
     ).get(type, category, key, value, source, targetDate);
 
     if (result && embeddingArray) {
+      db.query(`DELETE FROM vec_memories WHERE id = ?`).run(result.id);
       db.query(
-        `INSERT OR REPLACE INTO vec_memories (id, embedding) VALUES (?, ?)`
+        `INSERT INTO vec_memories (id, embedding) VALUES (?, ?)`
       ).run(result.id, new Float32Array(embeddingArray));
     }
   })();
