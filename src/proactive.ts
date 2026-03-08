@@ -99,7 +99,7 @@ async function executeScheduledMessage(id: number, message: string): Promise<voi
   markSent(id);
   try {
     await sendDM(message);
-    addMessage("assistant", message);
+    addMessage("assistant", message, true);
   } catch (err) {
     console.error("[scheduled]", (err as Error).message);
   } finally {
@@ -238,8 +238,13 @@ Send a warm, brief good morning. Reference something personal if you know it, li
       FALLBACK_MODEL
     );
 
+    if (!text || !text.trim()) {
+      console.warn("[morning] Model returned empty text. Skipping check-in.");
+      return;
+    }
+
     await sendDM(text);
-    addMessage("assistant", text);
+    addMessage("assistant", text, true);
     setMeta("last_proactive_sent", Date.now());
   } catch (err) {
     console.error("[morning]", (err as Error).message);
@@ -285,8 +290,13 @@ Check in casually. If they had something today (class, exam, event), ask about i
       FALLBACK_MODEL
     );
 
+    if (!text || !text.trim()) {
+      console.warn("[evening] Model returned empty text. Skipping check-in.");
+      return;
+    }
+
     await sendDM(text);
-    addMessage("assistant", text);
+    addMessage("assistant", text, true);
     setMeta("last_proactive_sent", Date.now());
   } catch (err) {
     console.error("[evening]", (err as Error).message);
@@ -380,7 +390,7 @@ Reply: YES: <message> or NO`,
         if (/^YES:/i.test(text.trim())) {
           const message = text.replace(/^YES:\s*/i, "").trim();
           await sendDM(message);
-          addMessage("assistant", message);
+          addMessage("assistant", message, true);
           setMeta("last_idle_nudge_sent", Date.now());
         }
       } catch (err) {
