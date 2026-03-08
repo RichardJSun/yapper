@@ -238,11 +238,27 @@ async function processBatch(
   const apiHistory = history.map((msg, idx) => {
     // Keep image for the most recent message (current batch), strip for older ones to save tokens
     const processedMsg = idx === history.length - 1 ? msg : stripImageParts(msg);
-    const { role, content } = processedMsg;
-    if (role === "user") {
+    const { role, content, created_at, is_proactive } = processedMsg as any;
+    
+    // Format timestamp if available
+    const timePrefix = created_at ? `[${new Date(created_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}] ` : "";
+    
+    if (role === "user" || (role === "assistant" && is_proactive)) {
+      if (Array.isArray(content)) {
+        const newContent = [...content];
+        const textIdx = newContent.findIndex((p: any) => p.type === "text");
+        if (textIdx >= 0) {
+          newContent[textIdx] = { ...newContent[textIdx], text: `${timePrefix}${(newContent[textIdx] as any).text}` };
+        } else if (timePrefix) {
+          newContent.unshift({ type: "text", text: timePrefix.trim() });
+        }
+        return { role, content: newContent } as const;
+      }
+      
+      const textContent = typeof content === "string" ? content : "";
       return {
-        role: "user",
-        content: content as UserContent,
+        role,
+        content: `${timePrefix}${textContent}`.trim(),
       } as const;
     } else {
       return {
@@ -284,24 +300,32 @@ async function processBatch(
           update_style: updateStylePreferenceTool,
           react: reactTool,
         },
-        stopWhen: stepCountIs(8),
+        stopWhen: stepCountIs(4),
       },
       FALLBACK_MODEL
     );
 
     if (result.finishReason === "length") {
-      console.warn("⚠️ Hit maxOutputTokens limit (800)!");
+      console.warn("⚠️ Hit maxOutputTokens limit (2000)!");
       console.warn("Usage:", JSON.stringify(result.usage));
     }
 
     if (result.text) {
-      addMessage("assistant", result.text);
-      const chunks = chunkText(result.text, 1900);
-      await lastMessage.reply(chunks[0]).catch(async () => {
-        await channel.send(chunks[0]);
-      });
-      for (const chunk of chunks.slice(1)) {
-        await channel.send(chunk);
+      let cleanText = result.text;
+      // Strip out hallucinated prefixes like [1:02 AM]
+      cleanText = cleanText.replace(/^\[\d{1,2}:\d{2}\s*(?:AM|PM)\]\s*/i, "");
+      // Strip out hallucinated suffixes like (Sent at 1:02 AM)
+      cleanText = cleanText.replace(/\s*\(Sent at \d{1,2}:\d{2}\s*(?:AM|PM)\)$/i, "");
+      
+      if (cleanText.trim()) {
+        addMessage("assistant", cleanText);
+        const chunks = chunkText(cleanText, 1900);
+        await lastMessage.reply(chunks[0]).catch(async () => {
+          await channel.send(chunks[0]);
+        });
+        for (const chunk of chunks.slice(1)) {
+          await channel.send(chunk);
+        }
       }
     }
   } catch (err) {
