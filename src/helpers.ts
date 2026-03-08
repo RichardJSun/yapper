@@ -153,7 +153,7 @@ export const saveMemoryTool = tool({
   description: `Persist facts about ${YOUR_NAME}, the people in their life, and your own evolving personality/preferences (${COMPANION_NAME}) to memory. History is TEMPORARY and will be forgotten. Err heavily on saving. Delete when user corrects a fact.
 DUPLICATION: If user updates an ongoing class/event not in context, call query_memory first to find exact key.
 DURABLE: true for significant life facts (family, health, housing). false for transient/academic items.
-TARGET_DATE: Unix MS timestamp for future exams/events. Empty for past/present facts.
+TARGET_DATE: Unix MS timestamp. Functions as an INJECTION EXPIRY DATE. The memory is pinned in your context until this date passes, after which it falls back to permanent archived memory (still retrievable via query_memory, but not forcefully injected). Use for upcoming events/exams. Empty for past/present facts.
 CATEGORIES (These are broad buckets; the examples are suggestions, not rigid limits):
 - profile: e.g. ${YOUR_NAME}'s name, age, location, identity
 - preference: e.g. ${YOUR_NAME}'s hobbies, food, routines, likes/dislikes
@@ -297,16 +297,19 @@ Set event_key to match a memory key if one exists to prevent duplicate schedulin
 });
 
 export const updateStylePreferenceTool = tool({
-  description: `Update the user's explicit communication style preferences. Use ONLY when the user tells you how they want you to act/talk. Injects instructions directly into your core prompt.`,
+  description: `Update the user's explicit communication style preferences. 
+IMPORTANT: This COMPLETELY REPLACES all existing custom style instructions. 
+If you want to add to or modify the current style, you MUST read the existing 'STRICT INSTRUCTIONS' in your system prompt and include any rules you wish to keep in this new update. 
+Use ONLY when the user gives specific feedback on how you should talk.`,
   inputSchema: z.object({
-    instructions: z.string().describe("The style instructions to follow going forward. Be concise but clear."),
+    instructions: z.string().describe("The new, complete set of style instructions. Must include preserved old rules if applicable."),
   }),
   execute: async ({ instructions }) => {
     try {
       // @ts-ignore
       const { setMeta } = await import("./memory.js");
       setMeta("user_style", instructions);
-      return "Style preferences successfully updated and injected into system prompt.";
+      return "Style preferences successfully updated. These now REPLACE your previous baseline.";
     } catch (err) {
       return `Failed to update style: ${(err as Error).message}`;
     }
@@ -321,9 +324,10 @@ let _batchMessageRefs: Message[] = [];
 export function setBatchMessageRefs(refs: Message[]): void {
   _batchMessageRefs = refs;
 }
-
 export const reactTool = tool({
-  description: `React to a message with an emoji naturally and sparingly. message_index 0 = first/oldest message in current batch. Use 0 if unsure.`,
+  description: `React to a message with an emoji naturally and sparingly. 
+IMPORTANT: Reactions should augment your text response, not replace it. Always provide text unless a reaction alone is perfectly sufficient. 
+message_index 0 = first/oldest message in current batch. Use 0 if unsure.`,
   inputSchema: z.object({
     emoji: z.string().describe('A single emoji to react with. E.g. "😂", "❤️", "👀"'),
     message_index: z.number().default(0).describe("Index of the message in the batch to react to (0 = first)."),
