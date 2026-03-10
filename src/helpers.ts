@@ -227,7 +227,8 @@ CATEGORIES (These are broad buckets; the examples are suggestions, not rigid lim
 });
 
 export const queryMemoryTool = tool({
-  description: `Search long-term memory for stored personal facts about ${YOUR_NAME} not in immediate context (e.g. past events, inside jokes). Never use for public facts/trivia. If nothing found, casually say you don't recall.`,
+  description: `Search long-term memory for stored personal facts about ${YOUR_NAME} not in immediate context (e.g. past events, inside jokes). Never use for public facts/trivia. 
+IMPORTANT: To avoid creating duplicate memories, call query_memory first if you think a fact might already exist but isn't in your current system prompt or recent chat history. If nothing found, casually say you don't recall.`,
   inputSchema: z.object({
     query: z.string().describe(
       'Search query for personal memories. E.g. "exam", "roommate", "Toronto"'
@@ -264,8 +265,9 @@ export const queryMemoryTool = tool({
 });
 
 export const scheduleMessageTool = tool({
-  description: `Schedule a message to send to ${YOUR_NAME} at a specific future time. Use generously after meaningful conversations.
-Set event_key to match a memory key if one exists to prevent duplicate scheduling.`,
+  description: `Schedule a message to send to ${YOUR_NAME} at a specific future time. 
+Pending messages are already in your system prompt context; refer to them to avoid duplicates.
+Use event_key to match a memory key if one exists to prevent duplicate scheduling.`,
   inputSchema: z.object({
     message: z.string().describe("The exact message to send. Write it naturally, in your voice."),
     fire_at_ms: z
