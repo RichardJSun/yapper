@@ -66,7 +66,7 @@ DefaultWebSocketManagerOptions.identifyProperties.browser = "Discord iOS";
 
 // ── Constants ──────────────────────────────────────────────
 
-const DEBOUNCE_MS = 1500;
+const DEBOUNCE_MS = 2500;
 
 const { DISCORD_TOKEN, MY_DISCORD_ID, YOUR_NAME, COMPANION_NAME, TZ } = config;
 
@@ -249,7 +249,7 @@ async function processBatch(
   }
   setBatchMessageRefs(messageRefs);
 
-  const typingId = sendTypingLoop(channel);
+  const typingId = await sendTypingLoop(channel);
 
   addMessage("user", userContent);
   let history = getHistory();

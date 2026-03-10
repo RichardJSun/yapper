@@ -79,6 +79,15 @@ export async function safeGenerateText(
 
       // Transient gateway error: retry once on same model
       if (status && status >= 500 && status <= 504) {
+        if (status === 503 && fallbackModel) {
+          console.warn(`[safeGenerateText] 503 — falling back to ${fallbackModel}`);
+          return await generateText({
+            ...currentParams,
+            model: resolveModel(fallbackModel),
+            messages: params.messages.map(stripImageParts) as ModelMessage[],
+            stopWhen: undefined,
+          } as unknown as GenerateTextParams);
+        }
         console.warn(`[safeGenerateText] ${status} — retrying in 1s`);
         await sleep(1000);
         return await generateText(currentParams);
@@ -377,9 +386,9 @@ message_index 0 = first/oldest message in current batch. Use 0 if unsure.`,
 
 // ── Utilities ──────────────────────────────────────────────
 
-export function sendTypingLoop(channel: TextChannel | DMChannel): ReturnType<typeof setInterval> {
-  channel.sendTyping().catch(() => { });
-  return setInterval(() => channel.sendTyping().catch(() => { }), 9000);
+export async function sendTypingLoop(channel: TextChannel | DMChannel): Promise<ReturnType<typeof setInterval>> {
+  await channel.sendTyping().catch(() => { });
+  return setInterval(() => channel.sendTyping().catch(() => { }), 4000);
 }
 
 export function isSendableChannel(channel: unknown): boolean {

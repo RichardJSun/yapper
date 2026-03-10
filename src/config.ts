@@ -24,13 +24,13 @@ export const config = parsed.data;
 
 // ── Model constants (single source of truth) ───────────────
 // Primary conversational model used for responding to user messages
-export const MODEL = "deepseek/deepseek-v3.2";
+export const MODEL = "zai/glm-4.7-flashx";
 // Used for responding when there are image attachments
 export const VISION_MODEL = "alibaba/qwen3.5-flash";
 // Used for lower-priority background tasks: proactive messages, summaries, and onboarding
 export const ALT_MODEL = "deepseek/deepseek-v3.2-thinking";
 // Used as a reliable fallback when the primary model hits rate limits or API errors
-export const FALLBACK_MODEL = "openai/gpt-4o-mini";
+export const FALLBACK_MODEL = "deepseek/deepseek-v3.2";
 // Used to generate vector embeddings for semantic memory search
 export const EMBED_MODEL = "openai/text-embedding-3-small";
 // Used for high-speed routing and intent classification before primary generation
