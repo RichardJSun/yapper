@@ -572,7 +572,6 @@ async function handleSlashCommand(interaction: ChatInputCommandInteraction): Pro
 
     if (sub === "search") {
       const query = interaction.options.getString("query", true);
-      const { searchMemories } = await import("./memory.js");
       const results = searchMemories(query);
       if (!results) {
         await interaction.reply({ content: `No memories found for "${query}".`, flags: MessageFlags.Ephemeral });

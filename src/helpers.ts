@@ -9,6 +9,9 @@ import {
   scheduleOneShot,
   searchMemories,
   searchMemoriesSemantic,
+  getUnsentMessages,
+  deleteScheduledMessage,
+  setMeta,
 } from "./memory.js";
 import { eventBus } from "./eventBus.js";
 
@@ -306,8 +309,6 @@ Use ONLY when the user gives specific feedback on how you should talk.`,
   }),
   execute: async ({ instructions }) => {
     try {
-      // @ts-ignore
-      const { setMeta } = await import("./memory.js");
       setMeta("user_style", instructions);
       return "Style preferences successfully updated. These now REPLACE your previous baseline.";
     } catch (err) {
