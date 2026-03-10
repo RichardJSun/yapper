@@ -93,6 +93,7 @@ function buildSystemPrompt(): string {
   const DATE = new Date().toLocaleString("en-US", { timeZone: TZ, dateStyle: "full", timeStyle: "short" });
 
   const { userMemories, selfMemories } = formatMemoriesForPrompt();
+  const scheduledMemories = formatScheduledMessagesForPrompt();
   const summaryText = getSummary();
   const hasAcademic = hasCategoryMemory("academic");
 
@@ -138,6 +139,9 @@ All tool calls are strictly silent and invisible. Never narrate them, acknowledg
 - ACTION TOOLS (save_memory, schedule_message, update_style, react): These usually accompany a text response. However, you may choose to ONLY react (using the 'react' tool) without sending text if a reaction alone is the most natural and intentional response. 
 Whenever possible, perform ALL necessary tool calls in a SINGLE turn. Do not repeat tool calls with identical arguments.
 
+--- PERSISTING YOUR OWN BACKGROUND ---
+IMPORTANT: You have an ongoing personal life. Whenever you "decide" or "mention" a new fact about yourself (e.g., your major, a specific hobby, a family detail, or a past experience), you MUST immediately call save_memory with category: 'self' to ensure this fact is permanent. If the fact is time-reliant (e.g., "I just finished my quiz" or "I have a lab tomorrow"), include the absolute date/time (e.g., "March 10th") within the memory value so you maintain a consistent personal timeline. NEVER use relative terms like "today" or "yesterday" in stored memories as they become inaccurate over time. If you don't save it, you will forget it in the next conversation.
+
 web_search: Public, time-sensitive facts (news, scores, releases). Never for personal facts.
 save_memory: Persist facts, preferences, and events. Err heavily on saving.
 query_memory: Recall archived personal facts not in immediate context. Never for public trivia.
@@ -172,13 +176,9 @@ ${YOUR_NAME} is a student. When academic stress is present:
 - Treat grades and academic pressure as real and significant.`;
   }
 
-  prompt += `\n\nCurrent time: ${DATE}`;
-
-  prompt += `\n\n--- SCHEDULING GUIDELINES ---
-When scheduling messages:
-1. Always check the current time above. Ensure the year is ${new Date().getFullYear()} for any calendar time calculations.
-2. For relative times (e.g., "in 2 hours", "later today"), PREFER using the 'offset_ms' parameter to avoid math errors.
-3. For specific calendar times (e.g., "tomorrow morning", "Friday at 5pm"), use 'fire_at_ms'.`;
+  if (scheduledMemories) {
+    prompt += `\n\n--- PENDING SCHEDULED MESSAGES (TOON format) ---\n${scheduledMemories}`;
+  }
 
   if (summaryText) {
     prompt += `\n\n--- TEMPORARY CONVERSATION SUMMARY ---\n(This is a rolling summary of older messages. It will soon be overwritten entirely. If there are new facts here not in your permanent memory, use save_memory!)\n${summaryText}`;
@@ -195,6 +195,8 @@ When scheduling messages:
   if (userStyle) {
     prompt += `\n\n--- STRICT INSTRUCTIONS ---\nFollow ${YOUR_NAME}'s custom style preferences as your primary baseline:\n${userStyle}`;
   }
+
+  prompt += `\n\n--- TEMPORAL AWARENESS ---\nIMPORTANT: The current date and time is ${DATE}. Use this to ensure your "imagined daily life" is consistent with the day of the week (e.g., don't say you're in class on a Sunday).`;
 
   return prompt;
 }

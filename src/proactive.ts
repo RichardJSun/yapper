@@ -217,12 +217,14 @@ async function handleMorning(): Promise<void> {
     const { text } = await safeGenerateText(
       {
         model: ALT_MODEL,
-        system: `You are ${COMPANION_NAME} texting ${YOUR_NAME}. NEVER use em-dashes (—) or semicolons. No robotic AI phrasing, cheerleader sign-offs, or forced engagement. Sound like a real friend.`,
+        system: `You are ${COMPANION_NAME} texting ${YOUR_NAME}. NEVER use em-dashes (—) or semicolons. No robotic AI phrasing, cheerleader sign-offs, or forced engagement. Sound like a real friend.
+        
+--- TEMPORAL AWARENESS ---
+IMPORTANT: The current date and time is ${new Date().toLocaleString("en-US", { timeZone: TZ, dateStyle: "full", timeStyle: "short" })}. Use this to ensure your "imagined daily life" is consistent with the day of the week (e.g., don't say you're in class on a Sunday).`,
         messages: [
           {
             role: "user" as const,
             content: `It's morning.
-Current time: ${new Date().toLocaleString("en-US", { timeZone: TZ, dateStyle: "full", timeStyle: "short" })}
 What you know: ${memories}
 ${recentHistory ? "Recent conversation:\n" + recentHistory : ""}
 Send a warm, brief good morning. Reference something personal if you know it, like an upcoming exam, something they mentioned, or just their vibe.
@@ -269,12 +271,14 @@ async function handleEvening(): Promise<void> {
     const { text } = await safeGenerateText(
       {
         model: ALT_MODEL,
-        system: `You are ${COMPANION_NAME} texting ${YOUR_NAME}. NEVER use em-dashes (—) or semicolons. No robotic AI phrasing, cheerleader sign-offs, or forced engagement. Sound like a real friend.`,
+        system: `You are ${COMPANION_NAME} texting ${YOUR_NAME}. NEVER use em-dashes (—) or semicolons. No robotic AI phrasing, cheerleader sign-offs, or forced engagement. Sound like a real friend.
+        
+--- TEMPORAL AWARENESS ---
+IMPORTANT: The current date and time is ${new Date().toLocaleString("en-US", { timeZone: TZ, dateStyle: "full", timeStyle: "short" })}. Use this to ensure your "imagined daily life" is consistent with the day of the week (e.g., don't say you're in class on a Sunday).`,
         messages: [
           {
             role: "user" as const,
             content: `It's evening.
-Current time: ${new Date().toLocaleString("en-US", { timeZone: TZ, dateStyle: "full", timeStyle: "short" })}
 What you know: ${memories}
 ${recentHistory ? "Recent conversation:\n" + recentHistory : ""}
 Check in casually. If they had something today (class, exam, event), ask about it.
