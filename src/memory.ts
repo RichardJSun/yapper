@@ -340,6 +340,24 @@ export function formatMemoriesForPrompt(): { userMemories: string | null; selfMe
   };
 }
 
+export function formatScheduledMessagesForPrompt(): string | null {
+  const messages = getUnsentMessages();
+  if (messages.length === 0) return null;
+
+  const data = messages.map((m) => {
+    const dateStr = new Date(m.fire_at).toLocaleString("en-US", {
+      timeZone: config.TZ,
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    return `ID ${m.id}: [${dateStr}] "${m.message}"${m.event_key ? ` (key: ${m.event_key})` : ""}`;
+  });
+
+  return encode({ PENDING: data });
+}
+
 // ── Meta ───────────────────────────────────────────────────
 
 export function getMeta(key: string): string | null {
@@ -450,6 +468,10 @@ export function getUnsentMessages(): ScheduledMessageRow[] {
   return db.query<ScheduledMessageRow, []>(
     `SELECT id, fire_at, message, event_key FROM scheduled_messages WHERE sent = 0 ORDER BY fire_at ASC`
   ).all();
+}
+
+export function deleteScheduledMessage(id: number): void {
+  db.query(`DELETE FROM scheduled_messages WHERE id = ?`).run(id);
 }
 
 // ── Resets ──────────────────────────────────────────────────

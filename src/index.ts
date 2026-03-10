@@ -24,8 +24,10 @@ import {
   resetAll,
   closeDb,
   getAllMemories,
+  searchMemories,
   hasCategoryMemory,
   formatMemoriesForPrompt,
+  formatScheduledMessagesForPrompt,
   upsertMemory,
   getMeta,
   setMeta,
@@ -45,6 +47,7 @@ import {
   scheduleMessageTool,
   updateStylePreferenceTool,
   reactTool,
+  manageScheduledMessagesTool,
   setBatchMessageRefs,
   sendTypingLoop,
   isSendableChannel,
@@ -245,10 +248,10 @@ async function processBatch(
     // Keep image for the most recent message (current batch), strip for older ones to save tokens
     const processedMsg = idx === history.length - 1 ? msg : stripImageParts(msg);
     const { role, content, created_at, is_proactive } = processedMsg as any;
-    
+
     // Format timestamp if available
     const timePrefix = created_at ? `[${new Date(created_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}] ` : "";
-    
+
     if (role === "user" || (role === "assistant" && is_proactive)) {
       if (Array.isArray(content)) {
         const newContent = [...content];
@@ -260,7 +263,7 @@ async function processBatch(
         }
         return { role, content: newContent } as const;
       }
-      
+
       const textContent = typeof content === "string" ? content : "";
       return {
         role,
@@ -305,12 +308,12 @@ async function processBatch(
           schedule_message: scheduleMessageTool,
           update_style: updateStylePreferenceTool,
           react: reactTool,
+          manage_scheduled_messages: manageScheduledMessagesTool,
         },
-        stopWhen: stepCountIs(8),
+        stopWhen: stepCountIs(15),
       },
       FALLBACK_MODEL
     );
-
     if (result.finishReason === "length") {
       console.warn("⚠️ Hit maxOutputTokens limit (2000)!");
       console.warn("Usage:", JSON.stringify(result.usage));
@@ -322,7 +325,7 @@ async function processBatch(
       cleanText = cleanText.replace(/^\[\d{1,2}:\d{2}\s*(?:AM|PM)\]\s*/i, "");
       // Strip out hallucinated suffixes like (Sent at 1:02 AM)
       cleanText = cleanText.replace(/\s*\(Sent at \d{1,2}:\d{2}\s*(?:AM|PM)\)$/i, "");
-      
+
       if (cleanText.trim()) {
         addMessage("assistant", cleanText);
         const chunks = chunkText(cleanText, 1900);
@@ -518,7 +521,7 @@ async function handleSlashCommand(interaction: ChatInputCommandInteraction): Pro
       } else {
         // Input provided -> set the new style
         setMeta("user_style", instructions);
-        
+
         const text = `✓ Style preferences updated to:\n"${instructions}"`;
         const chunks = chunkText(text, 1900);
         await interaction.reply({ content: chunks[0], flags: MessageFlags.Ephemeral });

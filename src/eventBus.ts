@@ -2,6 +2,7 @@ import { EventEmitter } from "events";
 
 interface EventMap {
   prefsUpdated: [];
+  scheduleUpdated: [];
 }
 
 class TypedEventEmitter extends EventEmitter {

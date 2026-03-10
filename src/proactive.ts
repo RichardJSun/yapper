@@ -413,6 +413,7 @@ export async function startScheduler(client: Client): Promise<void> {
   scheduleNextTimer();
 
   eventBus.on("prefsUpdated", () => rescheduleCheckIns());
+  eventBus.on("scheduleUpdated", () => scheduleNextTimer());
 }
 
 export function stopScheduler(): void {

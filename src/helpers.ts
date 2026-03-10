@@ -287,15 +287,40 @@ Set event_key to match a memory key if one exists to prevent duplicate schedulin
   execute: async ({ message, fire_at_ms, offset_ms, event_key }) => {
     const fireAt = fire_at_ms ?? (offset_ms ? Date.now() + offset_ms : Date.now());
     scheduleOneShot(fireAt, message, event_key ?? null);
-    // Trigger timer reschedule (imported dynamically to avoid circular dep)
-    try {
-      // @ts-ignore — dynamic import to break circular dependency
-      const { scheduleNextTimer } = await import("./proactive.js");
-      scheduleNextTimer();
-    } catch {
-      // proactive module may not be loaded yet at startup
-    }
+    eventBus.emit("scheduleUpdated");
     return { scheduled: true, fire_at_ms: fireAt };
+  },
+});
+
+export const manageScheduledMessagesTool = tool({
+  description: `Delete pending scheduled messages. Use this ONLY to delete messages that are no longer needed (e.g. if the user cancels a plan). The list of pending messages is already in your system prompt for reference.`,
+  inputSchema: z.object({
+    op: z.enum(["list", "delete"]),
+    id: z.number().optional().describe("The ID of the scheduled message to delete (required for 'delete' op)."),
+  }),
+  execute: async ({ op, id }) => {
+    try {
+      if (op === "list") {
+        const messages = getUnsentMessages();
+        if (messages.length === 0) return { found: false, message: "No pending scheduled messages." };
+
+        const formatted = messages
+          .map((m: any) => `ID: ${m.id} | Time: ${new Date(m.fire_at).toLocaleString()} | Key: ${m.event_key || "none"} | Message: "${m.message}"`)
+          .join("\n");
+        return { found: true, results: formatted };
+      }
+
+      if (op === "delete") {
+        if (id === undefined) return { success: false, message: "ID is required for delete operation." };
+        deleteScheduledMessage(id);
+        return { success: true, message: `Scheduled message ${id} deleted.` };
+      }
+
+      return { success: false, message: "Invalid operation." };
+    } catch (err) {
+      console.error("[manageScheduledMessages]", (err as Error).message);
+      return { success: false, message: "Scheduling management temporarily unavailable." };
+    }
   },
 });
 
