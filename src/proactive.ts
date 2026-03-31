@@ -9,8 +9,14 @@ import {
   getMeta,
   setMeta,
   getHistory,
-  getNextScheduledMessage,
-  markSent,
+  getNextRunnableScheduledMessage,
+  claimScheduledMessage,
+  getScheduledMessageById,
+  markScheduledSent,
+  markScheduledSuppressed,
+  rescheduleScheduledRetry,
+  resetStaleScheduledClaims,
+  type ScheduledMessageRow,
 } from "./memory.js";
 import {
   safeGenerateText,
@@ -20,10 +26,15 @@ import {
 } from "./helpers.js";
 import { ALT_MODEL, FALLBACK_MODEL } from "./config.js";
 import { eventBus } from "./eventBus.js";
+import { formatUserDateTime } from "./time.js";
 
 const { YOUR_NAME, COMPANION_NAME, MY_DISCORD_ID, TZ } = config;
 const IDLE_THRESHOLD_H = 8;
 const IDLE_NUDGE_COOLDOWN_H = 6;
+const SCHEDULE_TIMER_SLICE_MS = 60 * 60 * 1000;
+const OVERDUE_REVIEW_GRACE_MS = 5 * 60 * 1000;
+const OVERDUE_REVIEW_MAX_AGE_MS = 72 * 60 * 60 * 1000;
+const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 15 * 60_000, 60 * 60_000, 6 * 60 * 60_000];
 
 // ── Module state ───────────────────────────────────────────
 
@@ -35,25 +46,120 @@ const baker = Baker.create({
   persistence: {
     enabled: true,
     strategy: "file",
-    provider: new FilePersistenceProvider("./cronbake-state.json"),
+    provider: new FilePersistenceProvider(
+      process.env.CRONBAKE_STATE_PATH || "./cronbake-state.json"
+    ),
     autoRestore: true,
   },
 });
 
 // ── Send DM ────────────────────────────────────────────────
 
-async function sendDM(text: string): Promise<void> {
-  if (!discordClient) return;
-  try {
-    const user = await discordClient.users.fetch(MY_DISCORD_ID);
-    const dmChannel = await user.createDM();
-    if (!isSendableChannel(dmChannel)) return;
-    const chunks = chunkText(text, 1900);
-    for (const chunk of chunks) {
-      await dmChannel.send(chunk);
+async function sendDM(
+  text: string,
+  shouldContinue: (() => boolean) | null = null
+): Promise<void> {
+  if (!discordClient) {
+    throw new Error("Discord client unavailable");
+  }
+
+  const user = await discordClient.users.fetch(MY_DISCORD_ID);
+  const dmChannel = await user.createDM();
+  if (!isSendableChannel(dmChannel)) {
+    throw new Error("DM channel is not sendable");
+  }
+
+  const chunks = chunkText(text, 1900);
+  for (const chunk of chunks) {
+    if (shouldContinue && !shouldContinue()) {
+      throw new Error("Scheduled delivery cancelled before send");
     }
+    await dmChannel.send(chunk);
+  }
+}
+
+function getRetryDelayMs(attemptCount: number): number | null {
+  return RETRY_DELAYS_MS[attemptCount - 1] ?? null;
+}
+
+async function reviewOverdueScheduledMessage(
+  scheduled: ScheduledMessageRow
+): Promise<{ action: "send" | "suppress"; reason: string; message?: string }> {
+  const summaryText = getMeta("summary");
+  const recentHistory = formatRecentHistory() || "No recent history.";
+  const now = Date.now();
+
+  try {
+    const { text } = await safeGenerateText(
+      {
+        model: ALT_MODEL,
+        messages: [
+          {
+            role: "user",
+            content: `Review an overdue scheduled DM.
+
+Current time: ${formatUserDateTime(now, { dateStyle: "full", timeStyle: "short" })}
+Original scheduled time: ${formatUserDateTime(scheduled.original_fire_at, {
+              dateStyle: "full",
+              timeStyle: "short",
+            })}
+Overdue by: ${Math.floor((now - scheduled.original_fire_at) / 60000)} minutes
+
+Original message:
+${scheduled.message}
+
+Recent conversation:
+${recentHistory}
+
+Rolling summary:
+${summaryText || "None"}
+
+Return strict JSON with this exact shape:
+{"action":"send"|"suppress","reason":"short_reason","message":"rewritten message when action=send"}
+
+Rules:
+- Suppress if the message would now be confusing, misleading, stale, or socially off.
+- Send if the reminder is still relevant.
+- If sending, keep the original intent but rewrite only as needed for lateness.
+- Do not invent new commitments or facts.
+- Always include reason.
+- Omit message when suppressing.`,
+          },
+        ],
+        maxOutputTokens: 300,
+        providerOptions: {
+          gateway: { caching: "auto" },
+          openai: { reasoningEffort: "low" } satisfies OpenAIChatLanguageModelOptions,
+        },
+      },
+      FALLBACK_MODEL
+    );
+
+    const parsed = JSON.parse(text) as {
+      action?: "send" | "suppress";
+      reason?: string;
+      message?: string;
+    };
+
+    if (parsed.action === "send" && parsed.message?.trim()) {
+      return {
+        action: "send",
+        reason: parsed.reason?.trim() || "overdue_send",
+        message: parsed.message.trim(),
+      };
+    }
+
+    return {
+      action: "suppress",
+      reason: parsed.reason?.trim() || "overdue_irrelevant",
+    };
   } catch (err) {
-    console.error("[sendDM]", (err as Error).message);
+    console.warn("[scheduled-review]", (err as Error).message);
+    return {
+      action: "send",
+      reason: "review_failed_fallback_send",
+      message: scheduled.message,
+    };
   }
 }
 
@@ -65,43 +171,67 @@ export function scheduleNextTimer(): void {
     currentOneShotTimer = null;
   }
 
-  // If we're already executing a scheduled message, don't re-enter.
   if (isExecutingScheduled) return;
 
-  const nextMsg = getNextScheduledMessage();
+  resetStaleScheduledClaims();
+  const nextMsg = getNextRunnableScheduledMessage();
   if (!nextMsg) return;
 
   const now = Date.now();
   const delay = nextMsg.fire_at - now;
 
   if (delay <= 0) {
-    // If the message is older than 1 hour, it's likely stale or from a hallucinated past timestamp.
-    // Mark it as sent to clear it from the queue without sending.
-    if (Math.abs(delay) > 60 * 60 * 1000) {
-      console.warn(`[proactive] Skipping stale scheduled message (ID: ${nextMsg.id}, fire_at: ${nextMsg.fire_at})`);
-      markSent(nextMsg.id);
-      scheduleNextTimer();
-      return;
-    }
-    executeScheduledMessage(nextMsg.id, nextMsg.message);
+    void executeScheduledMessage(nextMsg.id);
   } else {
-    currentOneShotTimer = setTimeout(
-      () => executeScheduledMessage(nextMsg.id, nextMsg.message),
-      delay
-    );
+    currentOneShotTimer = setTimeout(() => {
+      currentOneShotTimer = null;
+      scheduleNextTimer();
+    }, Math.min(delay, SCHEDULE_TIMER_SLICE_MS));
   }
 }
 
-async function executeScheduledMessage(id: number, message: string): Promise<void> {
-  // Claim-before-execute: mark sent first to prevent duplicate delivery
-  // if scheduleNextTimer is called re-entrantly during the async DM send.
+async function executeScheduledMessage(id: number): Promise<void> {
   isExecutingScheduled = true;
-  markSent(id);
   try {
-    await sendDM(message);
-    addMessage("assistant", message, true);
+    const scheduled = claimScheduledMessage(id);
+    if (!scheduled) return;
+
+    const latenessMs = Date.now() - scheduled.original_fire_at;
+    if (scheduled.attempt_count === 1) {
+      if (latenessMs > OVERDUE_REVIEW_MAX_AGE_MS) {
+        markScheduledSuppressed(id, "stale_overdue");
+        return;
+      }
+
+      if (latenessMs > OVERDUE_REVIEW_GRACE_MS) {
+        const decision = await reviewOverdueScheduledMessage(scheduled);
+        if (decision.action === "suppress") {
+          markScheduledSuppressed(id, decision.reason);
+          return;
+        }
+        scheduled.message = decision.message?.trim() || scheduled.message;
+      }
+    }
+
+    const canStillSend = () => getScheduledMessageById(id)?.status === "sending";
+    if (!canStillSend()) return;
+
+    await sendDM(scheduled.message, canStillSend);
+    if (markScheduledSent(id)) {
+      addMessage("assistant", scheduled.message, true);
+    }
   } catch (err) {
-    console.error("[scheduled]", (err as Error).message);
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error("[scheduled]", errorMessage);
+    const latest = getScheduledMessageById(id);
+    if (latest?.status === "sending") {
+      const retryDelayMs = getRetryDelayMs(latest.attempt_count);
+      if (retryDelayMs !== null) {
+        rescheduleScheduledRetry(id, Date.now() + retryDelayMs, errorMessage);
+      } else {
+        markScheduledSuppressed(id, "delivery_failed", errorMessage);
+      }
+    }
   } finally {
     isExecutingScheduled = false;
     scheduleNextTimer();

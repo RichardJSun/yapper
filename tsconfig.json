@@ -12,9 +12,10 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
-    "lib": ["ESNext"]
+    "rootDir": ".",
+    "lib": ["ESNext"],
+    "types": ["bun"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
